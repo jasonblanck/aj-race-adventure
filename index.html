@@ -177,9 +177,10 @@ html, body { width:100%; height:100%; overflow:hidden; background:#000; font-fam
   <!-- Home screen -->
   <div class="screen active" id="screen-home">
     <div class="title">AJ'S<br>RACE!</div>
-    <div id="home-car" style="margin: 4vh 0;"></div>
+    <div class="subtitle" style="margin: -1vh 0 1vh 0;">⭐ Hi AJ! ⭐</div>
+    <div id="home-car" style="margin: 2vh 0;"></div>
     <button class="btn" onclick="startGame()">▶ PLAY</button>
-    <div class="subtitle" style="margin-top: 4vh;">Tap a button to begin!</div>
+    <div class="subtitle" style="margin-top: 4vh;">Tap PLAY to start!</div>
   </div>
 
   <!-- Map screen -->
@@ -380,15 +381,18 @@ function truckSVG(opts={}) {
 }
 
 // ========================= STATE =========================
+const NUM_LEVELS = 10;
 const State = {
   currentLevel: 0,
-  stars: [0,0,0,0,0,0,0,0],
+  stars: new Array(NUM_LEVELS).fill(0),
   unlockedUpTo: 0,
   load() {
     try {
       const s = JSON.parse(localStorage.getItem('aj-race-state') || '{}');
-      if (s.stars && s.stars.length === 8) this.stars = s.stars;
-      if (typeof s.unlockedUpTo === 'number') this.unlockedUpTo = s.unlockedUpTo;
+      if (Array.isArray(s.stars)) {
+        this.stars = new Array(NUM_LEVELS).fill(0).map((_, i) => s.stars[i] || 0);
+      }
+      if (typeof s.unlockedUpTo === 'number') this.unlockedUpTo = Math.min(s.unlockedUpTo, NUM_LEVELS - 1);
     } catch(e) {}
   },
   save() {
@@ -433,10 +437,16 @@ function showScreen(name) {
   $('screen-' + name).classList.add('active');
 }
 
+const GREETINGS = [
+  "Hi A J! Let's race!",
+  "A J! Are you ready to play?",
+  "Vroom vroom A J! Let's go!",
+  "Hi A J! Pick a level!"
+];
 function startGame() {
   Audio.init(); Audio.resume(); Audio.startMusic();
   Audio.honk();
-  Audio.speak("Hi A J! Let's race!");
+  Audio.speak(GREETINGS[Math.floor(Math.random()*GREETINGS.length)]);
   showScreen('map');
   renderMap();
 }
@@ -466,14 +476,16 @@ function renderHome() {
 
 // ========================= MAP =========================
 const LEVELS = [
-  { id: 0, label: 'A B C', icon: '🅰️', title: 'Letter Match', x: 15, y: 85, fn: 'levelLetterMatch' },
-  { id: 1, label: 'Color', icon: '🎨', title: 'Color Garage', x: 35, y: 70, fn: 'levelColorMatch' },
-  { id: 2, label: '1 2 3', icon: '🔢', title: 'Count the Cars', x: 60, y: 78, fn: 'levelCounting' },
-  { id: 3, label: 'Same', icon: '👀', title: 'Same or Different', x: 80, y: 60, fn: 'levelSameDiff' },
-  { id: 4, label: 'Find', icon: '🔍', title: 'Letter Hunt', x: 70, y: 42, fn: 'levelLetterHunt' },
-  { id: 5, label: 'Pairs', icon: '🃏', title: 'Memory Match', x: 45, y: 35, fn: 'levelMemory' },
-  { id: 6, label: 'Catch', icon: '⚡', title: 'Letter Catch', x: 25, y: 22, fn: 'levelCatch' },
-  { id: 7, label: 'RACE!', icon: '🏁', title: 'Big Race', x: 55, y: 10, fn: 'levelRace' }
+  { id: 0, label: 'A B C',   icon: '🅰️', title: 'Letter Match',       x: 15, y: 92, fn: 'levelLetterMatch' },
+  { id: 1, label: 'a A',     icon: '🔡', title: 'Big and Little',      x: 42, y: 86, fn: 'levelUpperLower' },
+  { id: 2, label: 'Color',   icon: '🎨', title: 'Color Garage',        x: 70, y: 92, fn: 'levelColorMatch' },
+  { id: 3, label: '1 2 3',   icon: '🔢', title: 'Count the Cars',      x: 86, y: 76, fn: 'levelCounting' },
+  { id: 4, label: 'Same',    icon: '👀', title: 'Same or Different',   x: 60, y: 68, fn: 'levelSameDiff' },
+  { id: 5, label: 'Find',    icon: '🔍', title: 'Letter Hunt',         x: 28, y: 62, fn: 'levelLetterHunt' },
+  { id: 6, label: 'Sounds',  icon: '🔊', title: 'Letter Sounds',       x: 14, y: 46, fn: 'levelPhonics' },
+  { id: 7, label: 'Pairs',   icon: '🃏', title: 'Memory Match',        x: 42, y: 40, fn: 'levelMemory' },
+  { id: 8, label: 'Catch',   icon: '⚡', title: 'Letter Catch',        x: 72, y: 30, fn: 'levelCatch' },
+  { id: 9, label: 'RACE!',   icon: '🏁', title: 'Big Race',            x: 50, y: 12, fn: 'levelRace' }
 ];
 
 function renderMap() {
@@ -572,7 +584,8 @@ function showWin(stars) {
     }, 400 + i * 350);
   }
   spawnConfetti();
-  setTimeout(() => Audio.speak("Great job A J!"), 1200);
+  const cheers = ["Great job A J!", "Way to go A J!", "Wow A J! You did it!", "Super A J!", "You're so smart A J!"];
+  setTimeout(() => Audio.speak(cheers[Math.floor(Math.random()*cheers.length)]), 1200);
 }
 
 function closeWin() {
@@ -606,9 +619,9 @@ function spawnConfetti() {
 
 // ========================= LEVEL 1: LETTER MATCH =========================
 function levelLetterMatch() {
-  const letters = ['A','B','C','D','E','F','M','S','T','O','R'];
+  const letters = ['A','B','C','D','E','F','J','M','S','T','O','R'];
   let round = 0;
-  const total = 5;
+  const total = 7;
   levelState = { round };
 
   function nextRound() {
@@ -670,7 +683,7 @@ function levelColorMatch() {
     { name: 'orange', hex: '#fb8c00' }
   ];
   let round = 0;
-  const total = 5;
+  const total = 7;
 
   function nextRound() {
     if (round >= total) { levelComplete(3); return; }
@@ -713,7 +726,7 @@ function levelColorMatch() {
 // ========================= LEVEL 3: COUNTING =========================
 function levelCounting() {
   let round = 0;
-  const total = 5;
+  const total = 7;
 
   function nextRound() {
     if (round >= total) { levelComplete(3); return; }
@@ -765,7 +778,7 @@ function levelCounting() {
 // ========================= LEVEL 4: SAME OR DIFFERENT =========================
 function levelSameDiff() {
   let round = 0;
-  const total = 5;
+  const total = 7;
   const colors = ['#e53935','#1e88e5','#fdd835','#43a047','#8e24aa','#fb8c00'];
 
   function nextRound() {
@@ -814,7 +827,7 @@ function levelSameDiff() {
 function levelLetterHunt() {
   const letters = ['A','B','C','D','E','F','J','M','S','T','O','R'];
   let round = 0;
-  const total = 5;
+  const total = 7;
   const colors = ['#e53935','#1e88e5','#fdd835','#43a047','#8e24aa','#fb8c00'];
 
   function nextRound() {
@@ -853,15 +866,127 @@ function levelLetterHunt() {
   levelCleanup = () => {};
 }
 
+// ========================= LEVEL: UPPER ↔ LOWER =========================
+function levelUpperLower() {
+  const letters = ['A','B','C','D','E','F','J','M','S','T','O','R'];
+  let round = 0;
+  const total = 7;
+
+  function nextRound() {
+    if (round >= total) { levelComplete(3); return; }
+    setProgress(round, total);
+    const target = letters[Math.floor(Math.random()*letters.length)];
+    const distractors = pickN(letters.filter(l => l !== target), 2);
+    const choices = shuffle([target, ...distractors]);
+    const ga = $('gameArea');
+    ga.innerHTML = `
+      <div class="big-letter">${target}</div>
+      <div class="choices" id="choices"></div>
+    `;
+    setInstruction(`Tap the little ${target.toLowerCase()}!`);
+    Audio.speak(`Find the little letter ${target}!`);
+
+    const cdiv = $('choices');
+    const colors = ['blue','green','purple','orange'];
+    choices.forEach(letter => {
+      const colorClass = colors[Math.floor(Math.random()*colors.length)];
+      const c = el('div', { class: `choice choice-letter ${colorClass} bounce` }, letter.toLowerCase());
+      c.addEventListener('click', () => {
+        if (c.classList.contains('faded')) return;
+        if (letter === target) {
+          c.classList.remove('bounce'); c.classList.add('correct');
+          Audio.good();
+          Audio.speak(`Big ${target} and little ${target}! Yes!`);
+          round++;
+          setTimeout(nextRound, 1100);
+        } else {
+          c.classList.add('wrong'); Audio.wrong();
+          setTimeout(() => { c.classList.remove('wrong'); c.classList.add('faded'); }, 400);
+        }
+      });
+      cdiv.appendChild(c);
+    });
+  }
+  nextRound();
+  levelCleanup = () => {};
+}
+
+// ========================= LEVEL: PHONICS (LETTER SOUNDS) =========================
+function levelPhonics() {
+  // Letter -> spoken phoneme + example word (Cars-friendly when possible)
+  const phonics = [
+    { letter: 'B', sound: 'buh', word: 'Ball' },
+    { letter: 'C', sound: 'kuh', word: 'Car' },
+    { letter: 'D', sound: 'duh', word: 'Dog' },
+    { letter: 'F', sound: 'fff',  word: 'Fish' },
+    { letter: 'M', sound: 'mmm',  word: 'Mack' },
+    { letter: 'N', sound: 'nnn',  word: 'Nest' },
+    { letter: 'R', sound: 'rrr',  word: 'Race' },
+    { letter: 'S', sound: 'sss',  word: 'Sun' },
+    { letter: 'T', sound: 'tuh', word: 'Truck' },
+    { letter: 'J', sound: 'juh', word: 'Jump' }
+  ];
+  let round = 0;
+  const total = 6;
+  const colors = ['#e53935','#1e88e5','#fdd835','#43a047','#8e24aa','#fb8c00'];
+
+  function nextRound() {
+    if (round >= total) { levelComplete(3); return; }
+    setProgress(round, total);
+    const target = phonics[Math.floor(Math.random()*phonics.length)];
+    const others = pickN(phonics.filter(p => p.letter !== target.letter), 2);
+    const all = shuffle([target, ...others]);
+    const ga = $('gameArea');
+    ga.innerHTML = `
+      <div class="instruction" style="background: linear-gradient(180deg,#42a5f5,#1565c0); margin-bottom: 1vh;">What letter says...</div>
+      <div class="big-letter" id="phonemeText" style="cursor:pointer; font-size: 18vmin;">${target.sound.toUpperCase()}</div>
+      <div class="choices" id="choices"></div>
+    `;
+    setInstruction(`What letter says ${target.sound}?`);
+    setTimeout(() => Audio.speak(`What letter says... ${target.sound}?`, { rate: 0.85 }), 100);
+
+    // tap the phoneme to hear it again
+    $('phonemeText').addEventListener('click', () => {
+      Audio.speak(target.sound, { rate: 0.85 });
+    });
+
+    const cdiv = $('choices');
+    all.forEach(p => {
+      const wrap = el('div', { class: 'choice bounce' });
+      const c = colors[Math.floor(Math.random()*colors.length)];
+      wrap.innerHTML = carSVG({ color: c, letter: p.letter, size: 'small' });
+      wrap.addEventListener('click', () => {
+        if (wrap.classList.contains('faded')) return;
+        if (p.letter === target.letter) {
+          wrap.classList.remove('bounce'); wrap.classList.add('correct');
+          Audio.good(); Audio.honk();
+          Audio.speak(`Yes! ${target.letter}! ${target.letter} like ${target.word}!`);
+          round++;
+          setTimeout(nextRound, 1700);
+        } else {
+          wrap.classList.add('wrong'); Audio.wrong();
+          setTimeout(() => { wrap.classList.remove('wrong'); wrap.classList.add('faded'); }, 400);
+        }
+      });
+      cdiv.appendChild(wrap);
+    });
+  }
+  nextRound();
+  levelCleanup = () => {};
+}
+
 // ========================= LEVEL 6: MEMORY MATCH =========================
 function levelMemory() {
   const palette = [
     { color:'#e53935', name:'red' },
     { color:'#1e88e5', name:'blue' },
     { color:'#fdd835', name:'yellow' },
-    { color:'#43a047', name:'green' }
+    { color:'#43a047', name:'green' },
+    { color:'#8e24aa', name:'purple' },
+    { color:'#fb8c00', name:'orange' }
   ];
-  const pairs = pickN(palette, 4); // 4 pairs = 8 cards in 4x2 grid
+  const PAIRS = 6;
+  const pairs = pickN(palette, PAIRS); // 6 pairs = 12 cards in 4x3 grid
   const deck = shuffle([...pairs, ...pairs].map((c, i) => ({...c, id: i})));
   let flipped = [];
   let matched = 0;
@@ -869,9 +994,9 @@ function levelMemory() {
 
   const ga = $('gameArea');
   setInstruction(`Match the cars!`);
-  Audio.speak(`Find the matching cars!`);
+  Audio.speak(`Find the matching cars A J!`);
   const grid = el('div', { class: 'cards-grid', style: 'grid-template-columns: repeat(4, 1fr);' });
-  setProgress(0, 4);
+  setProgress(0, PAIRS);
 
   deck.forEach((card, idx) => {
     const cardEl = el('div', { class: 'card', 'data-idx': idx });
@@ -894,9 +1019,9 @@ function levelMemory() {
             b.el.classList.add('matched');
             Audio.good();
             matched++;
-            setProgress(matched, 4);
+            setProgress(matched, PAIRS);
             flipped = []; busy = false;
-            if (matched >= 4) levelComplete(3);
+            if (matched >= PAIRS) levelComplete(3);
           }, 600);
         } else {
           Audio.wrong();
@@ -918,7 +1043,7 @@ function levelMemory() {
 // ========================= LEVEL 7: LETTER CATCH =========================
 function levelCatch() {
   let caught = 0;
-  const target = 8;
+  const target = 12;
   setProgress(0, target);
   const ga = $('gameArea');
   ga.innerHTML = '';
