@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a4d8f">
+<title>AJ's Race Adventure</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; touch-action:manipulation; }
+html, body { width:100%; height:100%; overflow:hidden; background:#000; font-family: 'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', system-ui, sans-serif; }
+#app { position:fixed; inset:0; overflow:hidden; }
+
+/* ------- Background ------- */
+.bg-sky { position:absolute; inset:0; background: linear-gradient(180deg, #4fc3f7 0%, #81d4fa 40%, #b3e5fc 65%, #c8e6c9 100%); }
+.sun { position:absolute; top:5%; right:8%; width:14vmin; height:14vmin; background: radial-gradient(circle at 35% 35%, #fffde7, #ffeb3b 50%, #ffa726); border-radius:50%; box-shadow: 0 0 8vmin #ffeb3b, 0 0 16vmin #ffa726; animation: pulse-sun 3s ease-in-out infinite; }
+@keyframes pulse-sun { 0%,100% { transform:scale(1);} 50% { transform:scale(1.08);} }
+.cloud { position:absolute; background:white; border-radius:60% 60% 50% 50%; opacity:0.95; box-shadow: 0 0 3vmin rgba(255,255,255,0.7); pointer-events:none; }
+.cloud::before, .cloud::after { content:''; position:absolute; background:white; border-radius:50%; }
+.cloud::before { width:60%; height:90%; top:-40%; left:15%; }
+.cloud::after { width:50%; height:80%; top:-25%; right:10%; }
+@keyframes drift { from { transform: translateX(-30vw);} to { transform: translateX(110vw); } }
+
+.bg-ground { position:absolute; bottom:0; left:0; right:0; height:30%; background: linear-gradient(180deg, #66bb6a 0%, #43a047 100%); }
+.track { position:absolute; bottom:4%; left:0; right:0; height:22%; background: linear-gradient(180deg, #616161 0%, #424242 100%); border-top: 4px solid #ffeb3b; border-bottom: 4px solid #ffeb3b; box-shadow: inset 0 0 4vmin rgba(0,0,0,0.4); }
+.track-dashes { position:absolute; bottom:calc(4% + 11%); left:0; right:0; height:1.2vmin; background: repeating-linear-gradient(90deg, white 0 8vmin, transparent 8vmin 16vmin); animation: scroll-dashes 1s linear infinite; opacity:0.95; }
+@keyframes scroll-dashes { from { background-position: 0 0; } to { background-position: -16vmin 0; } }
+
+/* mountains */
+.mountain { position:absolute; bottom:30%; width:0; height:0; border-left: 22vmin solid transparent; border-right: 22vmin solid transparent; border-bottom: 28vmin solid #5d4037; opacity:0.7; }
+.mountain::before { content:''; position:absolute; top:6vmin; left:-9vmin; width:18vmin; height:0; border-left: 9vmin solid transparent; border-right: 9vmin solid transparent; border-bottom: 8vmin solid #fafafa; }
+
+/* ------- Screens ------- */
+.screen { position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center; padding: 4vmin; }
+.screen.active { display:flex; }
+
+/* ------- Title / text ------- */
+.title { font-size: 13vmin; font-weight:900; color:#ffeb3b; text-align:center; line-height:0.95; letter-spacing:0.3vmin; -webkit-text-stroke: 1.2vmin #d32f2f; paint-order: stroke fill; text-shadow: 0 0.8vmin 0 #b71c1c, 0 1.6vmin 0 #000, 0 0 6vmin rgba(255,235,59,0.9); animation: title-bounce 2s ease-in-out infinite; }
+.title-small { font-size: 8vmin; font-weight:900; color:#fff; text-align:center; -webkit-text-stroke: 0.6vmin #1565c0; paint-order: stroke fill; text-shadow: 0 0.5vmin 0 #000, 0 0 3vmin #4fc3f7; }
+@keyframes title-bounce { 0%,100% { transform: scale(1) rotate(-2deg);} 50% { transform: scale(1.05) rotate(2deg);} }
+
+.subtitle { font-size: 6vmin; color:#fff; -webkit-text-stroke: 0.4vmin #000; paint-order: stroke fill; text-shadow: 0 0.4vmin 0 #000, 0 0 3vmin rgba(0,0,0,0.6); margin-top: 2vh; text-align:center; font-weight:900; }
+
+.instruction { font-size: 7vmin; color:#fff; -webkit-text-stroke: 0.5vmin #000; paint-order: stroke fill; text-shadow: 0 0.5vmin 0 #000; font-weight:900; text-align:center; padding: 1vh 3vw; background: linear-gradient(180deg, rgba(255,82,82,0.95), rgba(211,47,47,0.95)); border: 0.5vmin solid #ffeb3b; border-radius: 4vmin; box-shadow: 0 0 4vmin rgba(255,235,59,0.6); }
+
+/* ------- Big buttons ------- */
+.btn { padding: 2.2vh 4vw; font-size: 7vmin; font-weight:900; color:white; background: linear-gradient(180deg, #ff5252, #d32f2f); border: 0.6vmin solid #ffeb3b; border-radius: 4vmin; box-shadow: 0 1.2vmin 0 #b71c1c, 0 0 4vmin #ff5252, 0 0 8vmin rgba(255,82,82,0.5); cursor:pointer; -webkit-text-stroke: 0.4vmin #000; paint-order: stroke fill; letter-spacing:0.4vmin; transition: transform 0.08s, box-shadow 0.08s; font-family:inherit; }
+.btn:active { transform: translateY(0.6vmin); box-shadow: 0 0.6vmin 0 #b71c1c, 0 0 2vmin #ff5252; }
+.btn.green { background: linear-gradient(180deg, #66bb6a, #2e7d32); box-shadow: 0 1.2vmin 0 #1b5e20, 0 0 4vmin #66bb6a; }
+.btn.green:active { box-shadow: 0 0.6vmin 0 #1b5e20; }
+.btn.blue { background: linear-gradient(180deg, #42a5f5, #1565c0); box-shadow: 0 1.2vmin 0 #0d47a1, 0 0 4vmin #42a5f5; }
+.btn.blue:active { box-shadow: 0 0.6vmin 0 #0d47a1; }
+
+.icon-btn { width: 14vmin; height: 14vmin; border-radius: 50%; background: linear-gradient(180deg, #fff, #e0e0e0); border: 0.6vmin solid #1565c0; display:flex; align-items:center; justify-content:center; font-size: 7vmin; box-shadow: 0 0.8vmin 0 #0d47a1, 0 0 3vmin rgba(255,255,255,0.8); cursor:pointer; }
+.icon-btn:active { transform: translateY(0.4vmin); box-shadow: 0 0.4vmin 0 #0d47a1; }
+
+.top-bar { position:absolute; top:2vh; left:2vw; right:2vw; display:flex; justify-content:space-between; align-items:center; z-index:50; pointer-events:none; }
+.top-bar > * { pointer-events:auto; }
+
+.stars-display { display:flex; gap:1vmin; padding: 1vh 3vw; background: rgba(0,0,0,0.5); border: 0.4vmin solid #ffeb3b; border-radius: 3vmin; font-size: 5vmin; color:#ffeb3b; -webkit-text-stroke: 0.3vmin #000; paint-order: stroke fill; font-weight:900; }
+
+/* ------- Map ------- */
+.map { position:relative; width: 90vw; max-width: 700px; height: 80vh; }
+.checkpoint { position:absolute; width: 18vmin; height: 18vmin; transform: translate(-50%, -50%); display:flex; align-items:center; justify-content:center; font-size: 8vmin; cursor:pointer; }
+.checkpoint .cp-bg { position:absolute; inset:0; background: radial-gradient(circle at 35% 35%, #ffeb3b, #ffa726); border-radius:50%; border: 0.8vmin solid #d32f2f; box-shadow: 0 0 4vmin #ffeb3b, inset 0 0 2vmin rgba(0,0,0,0.3); animation: cp-pulse 2s ease-in-out infinite; }
+.checkpoint.locked .cp-bg { background: radial-gradient(circle at 35% 35%, #9e9e9e, #424242); border-color:#212121; box-shadow:none; animation:none; }
+.checkpoint.completed .cp-bg { background: radial-gradient(circle at 35% 35%, #69f0ae, #00c853); border-color:#1b5e20; box-shadow: 0 0 4vmin #00e676; }
+.checkpoint .cp-content { position:relative; z-index:2; font-weight:900; -webkit-text-stroke: 0.4vmin #000; paint-order: stroke fill; color:white; text-align:center; }
+.checkpoint .cp-stars { position:absolute; bottom:-3vmin; left:50%; transform:translateX(-50%); display:flex; gap:0.4vmin; font-size: 3.5vmin; color:#ffeb3b; -webkit-text-stroke: 0.3vmin #000; paint-order: stroke fill; }
+@keyframes cp-pulse { 0%,100% { transform: scale(1);} 50% { transform: scale(1.08);} }
+
+.map-path { position:absolute; inset:0; pointer-events:none; }
+
+/* ------- Game area ------- */
+.game-area { position:absolute; inset: 12vh 0 8vh 0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 0 3vw; gap: 3vh; z-index:10; }
+
+.choices { display:flex; gap: 4vmin; flex-wrap:wrap; justify-content:center; }
+.choice { cursor:pointer; transform: scale(1); transition: transform 0.15s; filter: drop-shadow(0 0.8vmin 0 rgba(0,0,0,0.5)); }
+.choice:active { transform: scale(0.92); }
+.choice.bounce { animation: bounce 0.6s ease-in-out infinite; }
+@keyframes bounce { 0%,100% { transform: translateY(0);} 50% { transform: translateY(-1.5vmin);} }
+.choice.wrong { animation: shake 0.4s; }
+@keyframes shake { 0%,100% { transform: translateX(0);} 25% { transform: translateX(-1.5vmin);} 75% { transform: translateX(1.5vmin);} }
+.choice.correct { animation: correct-pop 0.6s; }
+@keyframes correct-pop { 0% { transform: scale(1); filter: drop-shadow(0 0.8vmin 0 rgba(0,0,0,0.5));} 50% { transform: scale(1.3); filter: drop-shadow(0 0 6vmin gold);} 100% { transform: scale(1.15); filter: drop-shadow(0 0 4vmin gold);} }
+.choice.faded { opacity: 0.3; pointer-events:none; }
+
+.car-svg { width: 30vmin; max-width: 220px; height: auto; }
+.car-svg.small { width: 22vmin; max-width: 160px; }
+.car-svg.tiny { width: 18vmin; max-width: 130px; }
+
+.big-letter { font-size: 30vmin; font-weight:900; color:#ffeb3b; -webkit-text-stroke: 1.5vmin #d32f2f; paint-order: stroke fill; text-shadow: 0 1vmin 0 #b71c1c, 0 2vmin 0 #000, 0 0 8vmin #ffeb3b; animation: letter-float 2s ease-in-out infinite; line-height:1; }
+@keyframes letter-float { 0%,100% { transform: translateY(0) rotate(-3deg);} 50% { transform: translateY(-2vmin) rotate(3deg);} }
+
+.big-number { font-size: 24vmin; font-weight:900; color:#fff; -webkit-text-stroke: 1.2vmin #1565c0; paint-order: stroke fill; text-shadow: 0 0.8vmin 0 #0d47a1, 0 0 6vmin #4fc3f7; line-height:1; }
+
+.choice-letter { width: 22vmin; height: 22vmin; display:flex; align-items:center; justify-content:center; font-size: 14vmin; font-weight:900; color:#fff; background: linear-gradient(180deg, #42a5f5, #1565c0); border: 0.8vmin solid #ffeb3b; border-radius: 5vmin; box-shadow: 0 1vmin 0 #0d47a1, 0 0 4vmin rgba(66,165,245,0.7); -webkit-text-stroke: 0.5vmin #000; paint-order: stroke fill; }
+.choice-letter.green { background: linear-gradient(180deg, #66bb6a, #2e7d32); box-shadow: 0 1vmin 0 #1b5e20, 0 0 4vmin rgba(102,187,106,0.7); }
+.choice-letter.purple { background: linear-gradient(180deg, #ab47bc, #6a1b9a); box-shadow: 0 1vmin 0 #4a148c, 0 0 4vmin rgba(171,71,188,0.7); }
+.choice-letter.orange { background: linear-gradient(180deg, #ffa726, #ef6c00); box-shadow: 0 1vmin 0 #e65100, 0 0 4vmin rgba(255,167,38,0.7); }
+
+.garage { width: 28vmin; height: 22vmin; border-radius: 5vmin 5vmin 1vmin 1vmin; border: 0.8vmin solid #424242; display:flex; align-items:flex-end; justify-content:center; padding-bottom: 1vmin; box-shadow: inset 0 -1vmin 2vmin rgba(0,0,0,0.4); position:relative; cursor:pointer; }
+.garage.target { animation: target-glow 1s ease-in-out infinite; }
+@keyframes target-glow { 0%,100% { box-shadow: inset 0 -1vmin 2vmin rgba(0,0,0,0.4), 0 0 4vmin gold;} 50% { box-shadow: inset 0 -1vmin 2vmin rgba(0,0,0,0.4), 0 0 8vmin gold;} }
+
+.cards-grid { display:grid; gap: 2vmin; }
+.card { width: 22vmin; height: 22vmin; perspective: 800px; cursor:pointer; }
+.card-inner { position:relative; width:100%; height:100%; transform-style: preserve-3d; transition: transform 0.5s; }
+.card.flipped .card-inner, .card.matched .card-inner { transform: rotateY(180deg); }
+.card-face { position:absolute; inset:0; backface-visibility:hidden; border-radius: 3vmin; display:flex; align-items:center; justify-content:center; border: 0.6vmin solid #ffeb3b; box-shadow: 0 0.8vmin 0 #b71c1c; }
+.card-back { background: linear-gradient(135deg, #d32f2f, #b71c1c); }
+.card-back::before { content:'?'; font-size: 12vmin; color:#ffeb3b; -webkit-text-stroke: 0.5vmin #000; paint-order: stroke fill; font-weight:900; }
+.card-front { background: linear-gradient(180deg, #fff, #eeeeee); transform: rotateY(180deg); }
+.card.matched .card-front { box-shadow: 0 0 4vmin gold, 0 0.8vmin 0 #b71c1c; }
+
+/* ------- Race level ------- */
+.race-screen { position:absolute; inset:0; overflow:hidden; }
+.race-track { position:absolute; left:10vw; right:10vw; top:0; bottom:0; background: linear-gradient(180deg, #424242, #212121); border-left: 1vmin solid #ffeb3b; border-right: 1vmin solid #ffeb3b; }
+.race-track-lines { position:absolute; inset:0; background: repeating-linear-gradient(180deg, white 0 6vmin, transparent 6vmin 14vmin); width:1vmin; left:50%; transform:translateX(-50%); animation: scroll-down 0.6s linear infinite; }
+@keyframes scroll-down { from { background-position: 0 0;} to { background-position: 0 14vmin;} }
+.race-finish { position:absolute; left:0; right:0; height: 6vmin; background: repeating-conic-gradient(#000 0% 25%, #fff 25% 50%) 50% / 4vmin 4vmin; border-top: 0.6vmin solid #fff; border-bottom: 0.6vmin solid #fff; transition: top 0.3s; z-index:5; }
+.racer { position:absolute; bottom:8vh; width: 22vmin; transition: bottom 0.2s; z-index:10; }
+.racer.player { left: 35%; transform: translateX(-50%); }
+.racer.opponent { left: 65%; transform: translateX(-50%); }
+.tap-zone { position:absolute; inset:0; cursor:pointer; }
+
+/* ------- Catch level ------- */
+.falling-letter { position:absolute; font-size: 16vmin; font-weight:900; color:#ffeb3b; -webkit-text-stroke: 0.8vmin #d32f2f; paint-order: stroke fill; text-shadow: 0 0.8vmin 0 #000, 0 0 4vmin #ffeb3b; cursor:pointer; transition: transform 0.2s; line-height:1; }
+.falling-letter:active { transform: scale(1.3); }
+.falling-letter.caught { animation: caught-poof 0.5s forwards; }
+@keyframes caught-poof { from { transform:scale(1); opacity:1;} to { transform:scale(2.5); opacity:0;} }
+
+/* ------- Win overlay ------- */
+.win-overlay { position:absolute; inset:0; background: radial-gradient(circle, rgba(255,235,59,0.4), rgba(0,0,0,0.7)); display:none; flex-direction:column; align-items:center; justify-content:center; z-index:100; gap: 4vh; }
+.win-overlay.active { display:flex; animation: fade-in 0.3s; }
+@keyframes fade-in { from { opacity:0;} to { opacity:1;} }
+.win-text { font-size: 16vmin; font-weight:900; color:#ffeb3b; -webkit-text-stroke: 1.4vmin #d32f2f; paint-order: stroke fill; text-shadow: 0 1.2vmin 0 #b71c1c, 0 0 8vmin #ffeb3b; animation: win-bounce 0.8s ease-out; }
+@keyframes win-bounce { 0% { transform: scale(0) rotate(-180deg);} 60% { transform: scale(1.2) rotate(10deg);} 100% { transform: scale(1) rotate(0);} }
+.win-stars { display:flex; gap: 2vmin; }
+.win-star { font-size: 14vmin; opacity:0; }
+.win-star.show { animation: star-pop 0.5s forwards; }
+@keyframes star-pop { 0% { opacity:0; transform: scale(0) rotate(0);} 70% { opacity:1; transform: scale(1.4) rotate(360deg);} 100% { opacity:1; transform: scale(1) rotate(360deg);} }
+
+/* ------- Confetti ------- */
+.confetti { position:absolute; inset:0; pointer-events:none; z-index:200; overflow:hidden; }
+.confetti-piece { position:absolute; width: 2vmin; height: 3vmin; top:-5vmin; animation: confetti-fall 2.5s linear forwards; }
+@keyframes confetti-fall { to { transform: translateY(110vh) rotate(720deg); } }
+
+/* ------- Sound toggle ------- */
+.sound-btn { position:fixed; top:2vh; right:2vw; z-index:200; }
+
+/* ------- Misc ------- */
+.hidden { display:none !important; }
+.flex-row { display:flex; flex-direction:row; gap: 3vmin; align-items:center; justify-content:center; flex-wrap:wrap; }
+.flex-col { display:flex; flex-direction:column; gap: 3vh; align-items:center; justify-content:center; }
+
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Background -->
+  <div class="bg-sky"></div>
+  <div class="sun"></div>
+  <div id="clouds"></div>
+  <div class="mountain" style="left: 5%;"></div>
+  <div class="mountain" style="left: 65%; transform: scale(0.8);"></div>
+  <div class="bg-ground"></div>
+  <div class="track"></div>
+  <div class="track-dashes"></div>
+
+  <!-- Sound toggle -->
+  <div class="sound-btn icon-btn" id="soundBtn" onclick="toggleSound()">🔊</div>
+
+  <!-- Home screen -->
+  <div class="screen active" id="screen-home">
+    <div class="title">AJ'S<br>RACE!</div>
+    <div id="home-car" style="margin: 4vh 0;"></div>
+    <button class="btn" onclick="startGame()">▶ PLAY</button>
+    <div class="subtitle" style="margin-top: 4vh;">Tap a button to begin!</div>
+  </div>
+
+  <!-- Map screen -->
+  <div class="screen" id="screen-map">
+    <div class="top-bar">
+      <div class="icon-btn" onclick="goHome()">🏠</div>
+      <div class="title-small">PICK A LEVEL</div>
+      <div style="width: 14vmin;"></div>
+    </div>
+    <div class="map" id="map"></div>
+  </div>
+
+  <!-- Level screen -->
+  <div class="screen" id="screen-level">
+    <div class="top-bar">
+      <div class="icon-btn" onclick="goMap()">🗺️</div>
+      <div class="instruction" id="instruction">Tap the A!</div>
+      <div class="stars-display" id="progressDisplay">⭐ 0/5</div>
+    </div>
+    <div class="game-area" id="gameArea"></div>
+  </div>
+
+  <!-- Win overlay -->
+  <div class="win-overlay" id="winOverlay">
+    <div class="win-text" id="winText">GREAT JOB!</div>
+    <div class="win-stars" id="winStars"></div>
+    <button class="btn green" onclick="closeWin()">▶ NEXT</button>
+  </div>
+
+</div>
+
+<script>
+// ========================= AUDIO =========================
+const Audio = {
+  ctx: null, musicGain: null, sfxGain: null, musicTimer: null, muted: false,
+  init() {
+    if (this.ctx) return;
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.musicGain = this.ctx.createGain();
+      this.musicGain.gain.value = 0.06;
+      this.musicGain.connect(this.ctx.destination);
+      this.sfxGain = this.ctx.createGain();
+      this.sfxGain.gain.value = 0.25;
+      this.sfxGain.connect(this.ctx.destination);
+    } catch(e) {}
+  },
+  resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
+  beep(freq, dur, type='square', when=0, gain=0.3) {
+    if (!this.ctx || this.muted) return;
+    const t = this.ctx.currentTime + when;
+    const osc = this.ctx.createOscillator(), g = this.ctx.createGain();
+    osc.type = type; osc.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(gain, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(g); g.connect(this.sfxGain);
+    osc.start(t); osc.stop(t + dur + 0.05);
+  },
+  slide(f1, f2, dur, type='square', gain=0.3) {
+    if (!this.ctx || this.muted) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator(), g = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(f1, t);
+    osc.frequency.exponentialRampToValueAtTime(f2, t + dur);
+    g.gain.setValueAtTime(gain, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(g); g.connect(this.sfxGain);
+    osc.start(t); osc.stop(t + dur + 0.05);
+  },
+  win() { [523, 659, 784, 1047, 1319].forEach((f, i) => this.beep(f, 0.18, 'square', i * 0.09, 0.4)); },
+  star() { this.beep(880, 0.08, 'sine', 0, 0.3); this.beep(1320, 0.12, 'sine', 0.05, 0.3); },
+  good() { this.beep(660, 0.08, 'square', 0, 0.3); this.beep(880, 0.12, 'square', 0.07, 0.3); this.beep(1175, 0.16, 'square', 0.14, 0.3); },
+  wrong() { this.slide(300, 150, 0.25, 'sawtooth', 0.2); },
+  tap() { this.beep(660, 0.04, 'square', 0, 0.18); },
+  honk() { this.slide(440, 660, 0.12, 'square', 0.3); this.slide(660, 440, 0.12, 'square', 0.3); },
+  vroom() { this.slide(80, 180, 0.4, 'sawtooth', 0.2); },
+  speak(text, opts={}) {
+    if (!window.speechSynthesis || this.muted) return;
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = opts.rate || 0.92;
+      u.pitch = opts.pitch || 1.25;
+      u.volume = opts.volume || 1;
+      const voices = window.speechSynthesis.getVoices();
+      const preferred = voices.find(v => /samantha|karen|allison|google us english|female/i.test(v.name)) || voices[0];
+      if (preferred) u.voice = preferred;
+      window.speechSynthesis.speak(u);
+    } catch(e) {}
+  },
+  startMusic() {
+    if (!this.ctx || this.musicTimer || this.muted) return;
+    const C=261.63,D=293.66,E=329.63,F=349.23,G=392,A=440,B=493.88,C2=523.25,D2=587.33,E2=659.25;
+    const melody = [
+      [E2,0.18],[G,0.18],[C2,0.18],[E2,0.18],[D2,0.36],
+      [C2,0.18],[E2,0.18],[G,0.36],[0,0.18],
+      [F,0.18],[A,0.18],[C2,0.18],[F,0.18],[E,0.36],
+      [D,0.18],[F,0.18],[A,0.36],[0,0.18],
+      [G,0.18],[B,0.18],[D2,0.18],[G,0.18],[F,0.36],
+      [E,0.18],[D,0.18],[C,0.36],[0,0.36]
+    ];
+    let idx = 0;
+    const playNext = () => {
+      if (this.muted || !this.ctx) { this.musicTimer = null; return; }
+      const [freq, dur] = melody[idx];
+      if (freq > 0) {
+        const t = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator(), g = this.ctx.createGain();
+        osc.type = 'square'; osc.frequency.value = freq;
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.5, t + 0.015);
+        g.gain.linearRampToValueAtTime(0.4, t + dur * 0.7);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur * 0.95);
+        osc.connect(g); g.connect(this.musicGain);
+        osc.start(t); osc.stop(t + dur);
+        const bass = this.ctx.createOscillator(), bg = this.ctx.createGain();
+        bass.type = 'triangle'; bass.frequency.value = freq / 2;
+        bg.gain.setValueAtTime(0.35, t);
+        bg.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        bass.connect(bg); bg.connect(this.musicGain);
+        bass.start(t); bass.stop(t + dur);
+      }
+      idx = (idx + 1) % melody.length;
+      this.musicTimer = setTimeout(playNext, dur * 1000);
+    };
+    playNext();
+  },
+  stopMusic() { if (this.musicTimer) clearTimeout(this.musicTimer); this.musicTimer = null; }
+};
+
+function toggleSound() {
+  Audio.muted = !Audio.muted;
+  document.getElementById('soundBtn').textContent = Audio.muted ? '🔇' : '🔊';
+  if (Audio.muted) { Audio.stopMusic(); window.speechSynthesis && window.speechSynthesis.cancel(); }
+  else Audio.startMusic();
+}
+
+// ========================= GRAPHICS =========================
+function carSVG(opts={}) {
+  const color = opts.color || '#e53935';
+  const accent = opts.accent || '#ffeb3b';
+  const letter = opts.letter || '';
+  const number = opts.number || '';
+  const eyes = opts.eyes !== false;
+  return `<svg class="car-svg ${opts.size||''}" viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="110" cy="118" rx="95" ry="10" fill="rgba(0,0,0,0.2)"/>
+    <path d="M20,95 Q20,55 65,45 L155,45 Q200,55 200,95 L200,108 L20,108 Z" fill="${color}" stroke="#000" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M22,80 L198,80" stroke="${accent}" stroke-width="3" opacity="0.7"/>
+    <path d="M60,48 Q65,18 110,18 Q155,18 160,48 Z" fill="#b3e5fc" stroke="#000" stroke-width="4" stroke-linejoin="round"/>
+    ${eyes ? `
+      <circle cx="88" cy="32" r="11" fill="white" stroke="#000" stroke-width="2.5"/>
+      <circle cx="132" cy="32" r="11" fill="white" stroke="#000" stroke-width="2.5"/>
+      <circle cx="90" cy="34" r="6" fill="#1565c0"/>
+      <circle cx="134" cy="34" r="6" fill="#1565c0"/>
+      <circle cx="91" cy="32" r="2.5" fill="white"/>
+      <circle cx="135" cy="32" r="2.5" fill="white"/>
+    ` : ''}
+    <ellipse cx="200" cy="78" rx="9" ry="7" fill="#fff700" stroke="#000" stroke-width="2"/>
+    <circle cx="60" cy="108" r="22" fill="#212121" stroke="#000" stroke-width="3"/>
+    <circle cx="60" cy="108" r="11" fill="#9e9e9e" stroke="#000" stroke-width="1.5"/>
+    <circle cx="60" cy="108" r="4" fill="#424242"/>
+    <circle cx="160" cy="108" r="22" fill="#212121" stroke="#000" stroke-width="3"/>
+    <circle cx="160" cy="108" r="11" fill="#9e9e9e" stroke="#000" stroke-width="1.5"/>
+    <circle cx="160" cy="108" r="4" fill="#424242"/>
+    ${letter ? `<circle cx="110" cy="72" r="20" fill="white" stroke="#000" stroke-width="3"/>
+      <text x="110" y="82" font-size="28" font-weight="900" text-anchor="middle" fill="#000" font-family="Arial Black, sans-serif">${letter}</text>` : ''}
+    ${number ? `<circle cx="110" cy="72" r="20" fill="white" stroke="#000" stroke-width="3"/>
+      <text x="110" y="82" font-size="28" font-weight="900" text-anchor="middle" fill="#000" font-family="Arial Black, sans-serif">${number}</text>` : ''}
+  </svg>`;
+}
+
+function truckSVG(opts={}) {
+  const color = opts.color || '#d32f2f';
+  return `<svg class="car-svg ${opts.size||''}" viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="160" cy="142" rx="140" ry="10" fill="rgba(0,0,0,0.2)"/>
+    <rect x="20" y="40" width="180" height="85" fill="#fafafa" stroke="#000" stroke-width="4" rx="4"/>
+    <rect x="32" y="52" width="50" height="62" fill="${color}" stroke="#000" stroke-width="2.5" opacity="0.85"/>
+    <rect x="90" y="52" width="50" height="62" fill="${color}" stroke="#000" stroke-width="2.5" opacity="0.85"/>
+    <rect x="148" y="52" width="40" height="62" fill="${color}" stroke="#000" stroke-width="2.5" opacity="0.85"/>
+    <path d="M205,40 L280,40 L300,75 L300,125 L205,125 Z" fill="${color}" stroke="#000" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M215,46 L272,46 L288,76 L215,76 Z" fill="#b3e5fc" stroke="#000" stroke-width="3" stroke-linejoin="round"/>
+    <circle cx="232" cy="60" r="8" fill="white" stroke="#000" stroke-width="2"/>
+    <circle cx="262" cy="60" r="8" fill="white" stroke="#000" stroke-width="2"/>
+    <circle cx="234" cy="62" r="4.5" fill="#1565c0"/>
+    <circle cx="264" cy="62" r="4.5" fill="#1565c0"/>
+    <circle cx="234" cy="60" r="2" fill="white"/>
+    <circle cx="264" cy="60" r="2" fill="white"/>
+    <ellipse cx="300" cy="98" rx="6" ry="8" fill="#fff700" stroke="#000" stroke-width="2"/>
+    <circle cx="60" cy="125" r="20" fill="#212121" stroke="#000" stroke-width="3"/>
+    <circle cx="60" cy="125" r="9" fill="#9e9e9e"/>
+    <circle cx="160" cy="125" r="20" fill="#212121" stroke="#000" stroke-width="3"/>
+    <circle cx="160" cy="125" r="9" fill="#9e9e9e"/>
+    <circle cx="245" cy="125" r="20" fill="#212121" stroke="#000" stroke-width="3"/>
+    <circle cx="245" cy="125" r="9" fill="#9e9e9e"/>
+  </svg>`;
+}
+
+// ========================= STATE =========================
+const State = {
+  currentLevel: 0,
+  stars: [0,0,0,0,0,0,0,0],
+  unlockedUpTo: 0,
+  load() {
+    try {
+      const s = JSON.parse(localStorage.getItem('aj-race-state') || '{}');
+      if (s.stars && s.stars.length === 8) this.stars = s.stars;
+      if (typeof s.unlockedUpTo === 'number') this.unlockedUpTo = s.unlockedUpTo;
+    } catch(e) {}
+  },
+  save() {
+    try {
+      localStorage.setItem('aj-race-state', JSON.stringify({ stars: this.stars, unlockedUpTo: this.unlockedUpTo }));
+    } catch(e) {}
+  },
+  recordWin(level, stars) {
+    this.stars[level] = Math.max(this.stars[level], stars);
+    this.unlockedUpTo = Math.max(this.unlockedUpTo, level + 1);
+    this.save();
+  }
+};
+
+// ========================= UTILITIES =========================
+function $(id) { return document.getElementById(id); }
+function el(tag, attrs={}, html='') {
+  const e = document.createElement(tag);
+  Object.entries(attrs).forEach(([k,v]) => {
+    if (k === 'class') e.className = v;
+    else if (k === 'style') e.style.cssText = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v);
+  });
+  if (html) e.innerHTML = html;
+  return e;
+}
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function pickN(arr, n) { return shuffle(arr).slice(0, n); }
+function rand(min, max) { return Math.random() * (max - min) + min; }
+
+// ========================= SCREEN MANAGEMENT =========================
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $('screen-' + name).classList.add('active');
+}
+
+function startGame() {
+  Audio.init(); Audio.resume(); Audio.startMusic();
+  Audio.honk();
+  Audio.speak("Hi A J! Let's race!");
+  showScreen('map');
+  renderMap();
+}
+function goHome() {
+  Audio.tap();
+  cancelAnyLevel();
+  showScreen('home');
+}
+function goMap() {
+  Audio.tap();
+  cancelAnyLevel();
+  showScreen('map');
+  renderMap();
+}
+
+// ========================= HOME =========================
+function renderHome() {
+  $('home-car').innerHTML = carSVG({ color: '#e53935', accent: '#ffeb3b', size: '' });
+  // clouds
+  const clouds = $('clouds');
+  clouds.innerHTML = '';
+  for (let i = 0; i < 4; i++) {
+    const c = el('div', { class: 'cloud', style: `top: ${5 + i*8}%; width: ${10 + Math.random()*8}vmin; height: ${5 + Math.random()*4}vmin; animation: drift ${30 + i*8}s linear ${-i*8}s infinite;` });
+    clouds.appendChild(c);
+  }
+}
+
+// ========================= MAP =========================
+const LEVELS = [
+  { id: 0, label: 'A B C', icon: '🅰️', title: 'Letter Match', x: 15, y: 85, fn: 'levelLetterMatch' },
+  { id: 1, label: 'Color', icon: '🎨', title: 'Color Garage', x: 35, y: 70, fn: 'levelColorMatch' },
+  { id: 2, label: '1 2 3', icon: '🔢', title: 'Count the Cars', x: 60, y: 78, fn: 'levelCounting' },
+  { id: 3, label: 'Same', icon: '👀', title: 'Same or Different', x: 80, y: 60, fn: 'levelSameDiff' },
+  { id: 4, label: 'Find', icon: '🔍', title: 'Letter Hunt', x: 70, y: 42, fn: 'levelLetterHunt' },
+  { id: 5, label: 'Pairs', icon: '🃏', title: 'Memory Match', x: 45, y: 35, fn: 'levelMemory' },
+  { id: 6, label: 'Catch', icon: '⚡', title: 'Letter Catch', x: 25, y: 22, fn: 'levelCatch' },
+  { id: 7, label: 'RACE!', icon: '🏁', title: 'Big Race', x: 55, y: 10, fn: 'levelRace' }
+];
+
+function renderMap() {
+  const map = $('map');
+  map.innerHTML = '';
+  // path SVG
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'map-path');
+  svg.setAttribute('viewBox', '0 0 100 100');
+  svg.setAttribute('preserveAspectRatio', 'none');
+  let d = `M ${LEVELS[0].x} ${LEVELS[0].y}`;
+  for (let i = 1; i < LEVELS.length; i++) {
+    const p = LEVELS[i-1], c = LEVELS[i];
+    const mx = (p.x + c.x) / 2 + (Math.random() * 10 - 5);
+    const my = (p.y + c.y) / 2;
+    d += ` Q ${mx} ${my}, ${c.x} ${c.y}`;
+  }
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', d);
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke', '#fff');
+  path.setAttribute('stroke-width', '2');
+  path.setAttribute('stroke-dasharray', '3 3');
+  path.setAttribute('stroke-linecap', 'round');
+  path.setAttribute('opacity', '0.85');
+  svg.appendChild(path);
+  map.appendChild(svg);
+
+  LEVELS.forEach((lv, i) => {
+    const locked = i > State.unlockedUpTo;
+    const completed = State.stars[i] > 0;
+    const cp = el('div', {
+      class: 'checkpoint' + (locked ? ' locked' : '') + (completed ? ' completed' : ''),
+      style: `left:${lv.x}%; top:${lv.y}%;`
+    });
+    cp.innerHTML = `<div class="cp-bg"></div>
+      <div class="cp-content"><div style="font-size:7vmin;">${locked ? '🔒' : lv.icon}</div></div>
+      <div class="cp-stars">${'⭐'.repeat(State.stars[i])}${'☆'.repeat(3 - State.stars[i])}</div>`;
+    if (!locked) {
+      cp.addEventListener('click', () => {
+        Audio.tap();
+        startLevel(i);
+      });
+    }
+    map.appendChild(cp);
+  });
+}
+
+// ========================= LEVEL ENGINE =========================
+let levelCleanup = null;
+let levelState = null;
+
+function cancelAnyLevel() {
+  if (levelCleanup) try { levelCleanup(); } catch(e){}
+  levelCleanup = null;
+  levelState = null;
+}
+
+function startLevel(idx) {
+  cancelAnyLevel();
+  State.currentLevel = idx;
+  showScreen('level');
+  setProgress(0, 5);
+  setInstruction(LEVELS[idx].title);
+  $('gameArea').innerHTML = '';
+  // delay slightly so screen swaps cleanly
+  setTimeout(() => {
+    window[LEVELS[idx].fn]();
+  }, 200);
+}
+
+function setInstruction(text) {
+  $('instruction').textContent = text;
+}
+function setProgress(done, total) {
+  $('progressDisplay').textContent = `⭐ ${done}/${total}`;
+}
+
+function levelComplete(stars) {
+  Audio.win();
+  State.recordWin(State.currentLevel, stars);
+  setTimeout(() => showWin(stars), 600);
+}
+
+function showWin(stars) {
+  const ov = $('winOverlay');
+  ov.classList.add('active');
+  $('winText').textContent = ['NICE!', 'GREAT!', 'AWESOME!', 'WOW AJ!', 'SUPER!'][Math.floor(Math.random()*5)];
+  $('winStars').innerHTML = '';
+  for (let i = 0; i < 3; i++) {
+    const s = el('div', { class: 'win-star' }, i < stars ? '⭐' : '☆');
+    $('winStars').appendChild(s);
+    setTimeout(() => {
+      s.classList.add('show');
+      Audio.star();
+    }, 400 + i * 350);
+  }
+  spawnConfetti();
+  setTimeout(() => Audio.speak("Great job A J!"), 1200);
+}
+
+function closeWin() {
+  Audio.tap();
+  $('winOverlay').classList.remove('active');
+  // auto-advance to next level if available, else map
+  const next = State.currentLevel + 1;
+  if (next < LEVELS.length) {
+    startLevel(next);
+  } else {
+    showScreen('map');
+    renderMap();
+  }
+}
+
+function spawnConfetti() {
+  const colors = ['#ff5252','#ffeb3b','#42a5f5','#66bb6a','#ab47bc','#ffa726'];
+  const wrap = el('div', { class: 'confetti' });
+  for (let i = 0; i < 60; i++) {
+    const p = el('div', { class: 'confetti-piece' });
+    p.style.left = Math.random() * 100 + '%';
+    p.style.background = colors[Math.floor(Math.random()*colors.length)];
+    p.style.animationDelay = Math.random() * 0.4 + 's';
+    p.style.animationDuration = (1.5 + Math.random()) + 's';
+    p.style.transform = `rotate(${Math.random()*360}deg)`;
+    wrap.appendChild(p);
+  }
+  $('app').appendChild(wrap);
+  setTimeout(() => wrap.remove(), 3000);
+}
+
+// ========================= LEVEL 1: LETTER MATCH =========================
+function levelLetterMatch() {
+  const letters = ['A','B','C','D','E','F','M','S','T','O','R'];
+  let round = 0;
+  const total = 5;
+  levelState = { round };
+
+  function nextRound() {
+    if (round >= total) {
+      levelComplete(3);
+      return;
+    }
+    setProgress(round, total);
+    const target = letters[Math.floor(Math.random()*letters.length)];
+    const distractors = pickN(letters.filter(l => l !== target), 2);
+    const choices = shuffle([target, ...distractors]);
+    const colors = ['blue','green','purple','orange'];
+    const pickedColor = colors[Math.floor(Math.random()*colors.length)];
+
+    const ga = $('gameArea');
+    ga.innerHTML = `
+      <div class="big-letter">${target}</div>
+      <div class="choices" id="choices"></div>
+    `;
+    setInstruction(`Tap the letter ${target}!`);
+    Audio.speak(`Find the letter ${target}!`);
+
+    const cdiv = $('choices');
+    choices.forEach(letter => {
+      const colorClass = colors[Math.floor(Math.random()*colors.length)];
+      const c = el('div', { class: `choice choice-letter ${colorClass} bounce` }, letter);
+      c.addEventListener('click', () => {
+        if (c.classList.contains('faded')) return;
+        if (letter === target) {
+          c.classList.remove('bounce'); c.classList.add('correct');
+          Audio.good();
+          Audio.speak(`${letter}! Yes!`);
+          round++;
+          setTimeout(nextRound, 1000);
+        } else {
+          c.classList.add('wrong');
+          Audio.wrong();
+          setTimeout(() => {
+            c.classList.remove('wrong');
+            c.classList.add('faded');
+          }, 400);
+        }
+      });
+      cdiv.appendChild(c);
+    });
+  }
+  nextRound();
+  levelCleanup = () => { levelState = null; };
+}
+
+// ========================= LEVEL 2: COLOR MATCH =========================
+function levelColorMatch() {
+  const colorList = [
+    { name: 'red', hex: '#e53935' },
+    { name: 'blue', hex: '#1e88e5' },
+    { name: 'yellow', hex: '#fdd835' },
+    { name: 'green', hex: '#43a047' },
+    { name: 'purple', hex: '#8e24aa' },
+    { name: 'orange', hex: '#fb8c00' }
+  ];
+  let round = 0;
+  const total = 5;
+
+  function nextRound() {
+    if (round >= total) { levelComplete(3); return; }
+    setProgress(round, total);
+    const choices = pickN(colorList, 3);
+    const target = choices[Math.floor(Math.random()*choices.length)];
+    const ga = $('gameArea');
+    ga.innerHTML = `
+      <div class="instruction" style="background: linear-gradient(180deg, ${target.hex}, ${target.hex}); border-color:#ffeb3b;">Tap the ${target.name.toUpperCase()} car!</div>
+      <div class="choices" id="choices"></div>
+    `;
+    setInstruction(`Find the ${target.name} car!`);
+    Audio.speak(`Tap the ${target.name} car!`);
+
+    const cdiv = $('choices');
+    choices.forEach(c => {
+      const carWrap = el('div', { class: 'choice bounce' });
+      carWrap.innerHTML = carSVG({ color: c.hex });
+      carWrap.addEventListener('click', () => {
+        if (carWrap.classList.contains('faded')) return;
+        if (c.name === target.name) {
+          carWrap.classList.remove('bounce'); carWrap.classList.add('correct');
+          Audio.good(); Audio.honk();
+          Audio.speak(`${c.name}! Yes!`);
+          round++;
+          setTimeout(nextRound, 1100);
+        } else {
+          carWrap.classList.add('wrong');
+          Audio.wrong();
+          setTimeout(() => { carWrap.classList.remove('wrong'); carWrap.classList.add('faded'); }, 400);
+        }
+      });
+      cdiv.appendChild(carWrap);
+    });
+  }
+  nextRound();
+  levelCleanup = () => {};
+}
+
+// ========================= LEVEL 3: COUNTING =========================
+function levelCounting() {
+  let round = 0;
+  const total = 5;
+
+  function nextRound() {
+    if (round >= total) { levelComplete(3); return; }
+    setProgress(round, total);
+    const target = Math.floor(Math.random() * 5) + 1; // 1-5
+    const colors = ['#e53935','#1e88e5','#fdd835','#43a047','#8e24aa','#fb8c00'];
+    const ga = $('gameArea');
+    let carsHTML = '';
+    for (let i = 0; i < target; i++) {
+      const color = colors[Math.floor(Math.random()*colors.length)];
+      carsHTML += `<div style="display:inline-block; margin:1vmin;">${carSVG({ color, size: 'tiny' })}</div>`;
+    }
+    // make number choices
+    const distractorPool = [1,2,3,4,5].filter(n => n !== target);
+    const distractors = pickN(distractorPool, 2);
+    const numChoices = shuffle([target, ...distractors]);
+
+    ga.innerHTML = `
+      <div style="display:flex; flex-wrap:wrap; justify-content:center; max-width:90vw;">${carsHTML}</div>
+      <div class="choices" id="choices"></div>
+    `;
+    setInstruction(`How many cars?`);
+    Audio.speak(`How many cars?`);
+
+    const cdiv = $('choices');
+    numChoices.forEach(n => {
+      const colorClass = ['blue','green','purple','orange'][Math.floor(Math.random()*4)];
+      const c = el('div', { class: `choice choice-letter ${colorClass} bounce` }, String(n));
+      c.addEventListener('click', () => {
+        if (c.classList.contains('faded')) return;
+        if (n === target) {
+          c.classList.remove('bounce'); c.classList.add('correct');
+          Audio.good();
+          Audio.speak(`${target} cars! Yes!`);
+          round++;
+          setTimeout(nextRound, 1200);
+        } else {
+          c.classList.add('wrong'); Audio.wrong();
+          setTimeout(() => { c.classList.remove('wrong'); c.classList.add('faded'); }, 400);
+        }
+      });
+      cdiv.appendChild(c);
+    });
+  }
+  nextRound();
+  levelCleanup = () => {};
+}
+
+// ========================= LEVEL 4: SAME OR DIFFERENT =========================
+function levelSameDiff() {
+  let round = 0;
+  const total = 5;
+  const colors = ['#e53935','#1e88e5','#fdd835','#43a047','#8e24aa','#fb8c00'];
+
+  function nextRound() {
+    if (round >= total) { levelComplete(3); return; }
+    setProgress(round, total);
+    const same = colors[Math.floor(Math.random()*colors.length)];
+    let different;
+    do { different = colors[Math.floor(Math.random()*colors.length)]; } while (different === same);
+    // 3 cars: 2 same color, 1 different
+    const cars = [
+      { color: same, isOdd: false },
+      { color: same, isOdd: false },
+      { color: different, isOdd: true }
+    ];
+    const arr = shuffle(cars);
+    const ga = $('gameArea');
+    ga.innerHTML = `<div class="choices" id="choices"></div>`;
+    setInstruction(`Tap the car that is different!`);
+    Audio.speak(`Find the car that is different!`);
+
+    const cdiv = $('choices');
+    arr.forEach(car => {
+      const wrap = el('div', { class: 'choice bounce' });
+      wrap.innerHTML = carSVG({ color: car.color });
+      wrap.addEventListener('click', () => {
+        if (wrap.classList.contains('faded')) return;
+        if (car.isOdd) {
+          wrap.classList.remove('bounce'); wrap.classList.add('correct');
+          Audio.good(); Audio.honk();
+          Audio.speak(`Yes! That one is different!`);
+          round++;
+          setTimeout(nextRound, 1300);
+        } else {
+          wrap.classList.add('wrong'); Audio.wrong();
+          setTimeout(() => { wrap.classList.remove('wrong'); wrap.classList.add('faded'); }, 400);
+        }
+      });
+      cdiv.appendChild(wrap);
+    });
+  }
+  nextRound();
+  levelCleanup = () => {};
+}
+
+// ========================= LEVEL 5: LETTER HUNT =========================
+function levelLetterHunt() {
+  const letters = ['A','B','C','D','E','F','J','M','S','T','O','R'];
+  let round = 0;
+  const total = 5;
+  const colors = ['#e53935','#1e88e5','#fdd835','#43a047','#8e24aa','#fb8c00'];
+
+  function nextRound() {
+    if (round >= total) { levelComplete(3); return; }
+    setProgress(round, total);
+    const target = letters[Math.floor(Math.random()*letters.length)];
+    const others = pickN(letters.filter(l => l !== target), 3);
+    const all = shuffle([target, ...others]);
+    const ga = $('gameArea');
+    ga.innerHTML = `<div class="choices" id="choices"></div>`;
+    setInstruction(`Find the car with ${target}!`);
+    Audio.speak(`Find the car with the letter ${target}!`);
+
+    const cdiv = $('choices');
+    all.forEach(letter => {
+      const color = colors[Math.floor(Math.random()*colors.length)];
+      const wrap = el('div', { class: 'choice bounce' });
+      wrap.innerHTML = carSVG({ color, letter, size: 'small' });
+      wrap.addEventListener('click', () => {
+        if (wrap.classList.contains('faded')) return;
+        if (letter === target) {
+          wrap.classList.remove('bounce'); wrap.classList.add('correct');
+          Audio.good(); Audio.honk();
+          Audio.speak(`${letter}! Great job!`);
+          round++;
+          setTimeout(nextRound, 1200);
+        } else {
+          wrap.classList.add('wrong'); Audio.wrong();
+          setTimeout(() => { wrap.classList.remove('wrong'); wrap.classList.add('faded'); }, 400);
+        }
+      });
+      cdiv.appendChild(wrap);
+    });
+  }
+  nextRound();
+  levelCleanup = () => {};
+}
+
+// ========================= LEVEL 6: MEMORY MATCH =========================
+function levelMemory() {
+  const palette = [
+    { color:'#e53935', name:'red' },
+    { color:'#1e88e5', name:'blue' },
+    { color:'#fdd835', name:'yellow' },
+    { color:'#43a047', name:'green' }
+  ];
+  const pairs = pickN(palette, 4); // 4 pairs = 8 cards in 4x2 grid
+  const deck = shuffle([...pairs, ...pairs].map((c, i) => ({...c, id: i})));
+  let flipped = [];
+  let matched = 0;
+  let busy = false;
+
+  const ga = $('gameArea');
+  setInstruction(`Match the cars!`);
+  Audio.speak(`Find the matching cars!`);
+  const grid = el('div', { class: 'cards-grid', style: 'grid-template-columns: repeat(4, 1fr);' });
+  setProgress(0, 4);
+
+  deck.forEach((card, idx) => {
+    const cardEl = el('div', { class: 'card', 'data-idx': idx });
+    cardEl.innerHTML = `<div class="card-inner">
+      <div class="card-face card-back"></div>
+      <div class="card-face card-front">${carSVG({ color: card.color, size: 'tiny' })}</div>
+    </div>`;
+    cardEl.addEventListener('click', () => {
+      if (busy) return;
+      if (cardEl.classList.contains('flipped') || cardEl.classList.contains('matched')) return;
+      cardEl.classList.add('flipped');
+      Audio.tap();
+      flipped.push({ card, el: cardEl });
+      if (flipped.length === 2) {
+        busy = true;
+        const [a, b] = flipped;
+        if (a.card.color === b.card.color && a.card.id !== b.card.id) {
+          setTimeout(() => {
+            a.el.classList.add('matched');
+            b.el.classList.add('matched');
+            Audio.good();
+            matched++;
+            setProgress(matched, 4);
+            flipped = []; busy = false;
+            if (matched >= 4) levelComplete(3);
+          }, 600);
+        } else {
+          Audio.wrong();
+          setTimeout(() => {
+            a.el.classList.remove('flipped');
+            b.el.classList.remove('flipped');
+            flipped = []; busy = false;
+          }, 1100);
+        }
+      }
+    });
+    grid.appendChild(cardEl);
+  });
+  ga.innerHTML = '';
+  ga.appendChild(grid);
+  levelCleanup = () => {};
+}
+
+// ========================= LEVEL 7: LETTER CATCH =========================
+function levelCatch() {
+  let caught = 0;
+  const target = 8;
+  setProgress(0, target);
+  const ga = $('gameArea');
+  ga.innerHTML = '';
+  ga.style.position = 'relative';
+  setInstruction(`Tap the letters!`);
+  Audio.speak(`Tap the letters as they fall!`);
+
+  const letters = ['A','B','C','D','E','F','J','M','S'];
+  let active = [];
+  let spawnInt, fallInt, stopped = false;
+
+  const playArea = el('div', { style: 'position:absolute; inset:0; pointer-events:none;' });
+  // attach to level screen below top bar
+  const screen = $('screen-level');
+  screen.appendChild(playArea);
+
+  function spawnLetter() {
+    if (stopped) return;
+    const letter = letters[Math.floor(Math.random()*letters.length)];
+    const x = 10 + Math.random() * 75;
+    const ldiv = el('div', { class: 'falling-letter', style: `left:${x}vw; top:14vh; pointer-events:auto;` }, letter);
+    let y = 14;
+    ldiv.dataset.y = y;
+    ldiv.addEventListener('click', () => {
+      if (ldiv.classList.contains('caught')) return;
+      ldiv.classList.add('caught');
+      Audio.star();
+      Audio.speak(letter);
+      caught++;
+      setProgress(caught, target);
+      setTimeout(() => ldiv.remove(), 500);
+      if (caught >= target) {
+        stopped = true;
+        clearInterval(spawnInt); clearInterval(fallInt);
+        active.forEach(l => l.remove());
+        playArea.remove();
+        levelComplete(3);
+      }
+    });
+    playArea.appendChild(ldiv);
+    active.push(ldiv);
+  }
+
+  spawnInt = setInterval(spawnLetter, 1100);
+  spawnLetter();
+
+  fallInt = setInterval(() => {
+    if (stopped) return;
+    active = active.filter(l => l.parentNode);
+    active.forEach(l => {
+      let y = parseFloat(l.dataset.y) + 1.2;
+      l.dataset.y = y;
+      l.style.top = y + 'vh';
+      if (y > 90) { l.remove(); }
+    });
+  }, 60);
+
+  levelCleanup = () => {
+    stopped = true;
+    clearInterval(spawnInt); clearInterval(fallInt);
+    if (playArea.parentNode) playArea.remove();
+  };
+}
+
+// ========================= LEVEL 8: BIG RACE =========================
+function levelRace() {
+  const screen = $('screen-level');
+  $('gameArea').innerHTML = '';
+  setInstruction(`TAP TAP TAP!`);
+  setProgress(0, 100);
+  Audio.speak(`Tap fast to race! Go A J!`);
+  Audio.vroom();
+
+  const raceWrap = el('div', { class: 'race-screen', id: 'raceWrap' });
+  raceWrap.innerHTML = `
+    <div class="race-track">
+      <div class="race-track-lines"></div>
+    </div>
+    <div class="race-finish" id="finish" style="top: 12vh;"></div>
+    <div class="racer player" id="player" style="bottom:8vh;">${carSVG({ color:'#e53935', size:'small' })}</div>
+    <div class="racer opponent" id="opponent" style="bottom:8vh;">${truckSVG({ color:'#c62828', size:'small' })}</div>
+    <div class="tap-zone" id="tapZone"></div>
+  `;
+  screen.appendChild(raceWrap);
+
+  let progress = 0; // 0-100
+  const target = 100;
+  let opponentProgress = 0;
+  let stopped = false;
+
+  const tapZone = $('tapZone');
+  function onTap() {
+    if (stopped) return;
+    progress = Math.min(target, progress + 4);
+    Audio.tap();
+    setProgress(Math.floor(progress), 100);
+    updatePositions();
+    if (progress >= target) finish('player');
+  }
+  tapZone.addEventListener('click', onTap);
+  tapZone.addEventListener('touchstart', (e) => { e.preventDefault(); onTap(); });
+
+  const oppInt = setInterval(() => {
+    if (stopped) return;
+    opponentProgress = Math.min(target, opponentProgress + (1.2 + Math.random()*0.7));
+    updatePositions();
+    if (opponentProgress >= target && progress < target) finish('opponent');
+  }, 220);
+
+  function updatePositions() {
+    // player car climbs from 8vh up toward finish at 12vh? no — better: player stays put, finish line moves down toward them as progress increases
+    // Implement: visual "track" — finish line stays near top; player moves up
+    const playerBottom = 8 + (progress / target) * 70; // 8vh -> 78vh
+    const oppBottom = 8 + (opponentProgress / target) * 70;
+    $('player').style.bottom = playerBottom + 'vh';
+    $('opponent').style.bottom = oppBottom + 'vh';
+  }
+
+  function finish(who) {
+    if (stopped) return;
+    stopped = true;
+    clearInterval(oppInt);
+    Audio.honk();
+    if (who === 'player') {
+      Audio.speak(`A J wins! Hooray!`);
+      setTimeout(() => {
+        raceWrap.remove();
+        levelComplete(3);
+      }, 800);
+    } else {
+      // give 2 stars even if slow finish — kid friendly, no losing
+      Audio.speak(`Good race A J!`);
+      // nudge player to finish on their own
+      const finishInt = setInterval(() => {
+        progress = Math.min(target, progress + 6);
+        updatePositions();
+        if (progress >= target) {
+          clearInterval(finishInt);
+          setTimeout(() => { raceWrap.remove(); levelComplete(2); }, 600);
+        }
+      }, 100);
+    }
+  }
+
+  levelCleanup = () => {
+    stopped = true;
+    clearInterval(oppInt);
+    if (raceWrap.parentNode) raceWrap.remove();
+  };
+}
+
+// ========================= INIT =========================
+window.addEventListener('load', () => {
+  State.load();
+  renderHome();
+  // Kick speech synth voices to load
+  if (window.speechSynthesis) {
+    window.speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+  }
+  // Init audio on first interaction
+  const initAudio = () => {
+    Audio.init(); Audio.resume();
+    document.removeEventListener('touchstart', initAudio);
+    document.removeEventListener('click', initAudio);
+  };
+  document.addEventListener('touchstart', initAudio, { once: true });
+  document.addEventListener('click', initAudio, { once: true });
+});
+
+// prevent pinch zoom and double-tap zoom on iOS
+document.addEventListener('gesturestart', e => e.preventDefault());
+let lastTouch = 0;
+document.addEventListener('touchend', e => {
+  const now = Date.now();
+  if (now - lastTouch < 300) e.preventDefault();
+  lastTouch = now;
+}, { passive: false });
+</script>
+</body>
+</html>
