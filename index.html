@@ -151,6 +151,17 @@ html, body { width:100%; height:100%; overflow:hidden; background:#000; font-fam
 /* ------- Sound toggle ------- */
 .sound-btn { position:fixed; top:2vh; right:2vw; z-index:200; }
 
+/* ------- Car Builder ------- */
+.builder-wrap { display:flex; flex-direction:column; align-items:center; gap: 1.5vh; max-height: 84vh; overflow-y: auto; padding: 1vh 0; width: 100%; }
+.builder-preview { filter: drop-shadow(0 0 4vmin rgba(255,235,59,0.6)); animation: title-bounce 3s ease-in-out infinite; }
+.builder-row { display:flex; flex-direction:column; align-items:center; gap: 0.6vh; width: 100%; }
+.builder-label { font-size: 4vmin; font-weight:900; color:#fff; -webkit-text-stroke: 0.4vmin #000; paint-order: stroke fill; letter-spacing: 0.3vmin; }
+.builder-swatches { display:flex; gap: 1.5vmin; flex-wrap: wrap; justify-content:center; padding: 0 2vw; }
+.swatch { width: 11vmin; height: 11vmin; border-radius: 50%; border: 0.6vmin solid #1565c0; box-shadow: 0 0.6vmin 0 #0d47a1; cursor:pointer; transition: transform 0.1s; }
+.swatch:active { transform: scale(0.92); }
+.swatch.selected { border-color: #ffeb3b; box-shadow: 0 0.6vmin 0 #b71c1c, 0 0 3vmin gold; transform: scale(1.1); }
+.swatch.num { display:flex; align-items:center; justify-content:center; font-size: 7vmin; font-weight:900; color:#fff; -webkit-text-stroke: 0.4vmin #000; paint-order: stroke fill; background: linear-gradient(180deg,#42a5f5,#1565c0); }
+
 /* ------- Trace level ------- */
 .trace-svg { width: 70vmin; max-width: 480px; height: 70vmin; max-height: 480px; touch-action: none; }
 .trace-outline { fill: none; stroke: #fff; stroke-width: 14; stroke-linecap: round; stroke-linejoin: round; opacity: 0.5; stroke-dasharray: 6 8; }
@@ -211,17 +222,17 @@ html, body { width:100%; height:100%; overflow:hidden; background:#000; font-fam
     <div class="subtitle" style="margin: -1vh 0 1vh 0;">⭐ Hi AJ! ⭐</div>
     <div id="home-car" style="margin: 2vh 0;"></div>
     <button class="btn" onclick="startGame()">▶ PLAY</button>
-    <button class="btn blue" style="margin-top: 2vh; font-size: 5vmin;" onclick="showAvatarPicker()">🚗 PICK A CAR</button>
+    <button class="btn blue" style="margin-top: 2vh; font-size: 5vmin;" onclick="showCarBuilder()">🚗 BUILD MY CAR</button>
   </div>
 
-  <!-- Avatar picker -->
-  <div class="screen" id="screen-avatar">
+  <!-- Car builder -->
+  <div class="screen" id="screen-builder">
     <div class="top-bar">
       <div class="icon-btn" onclick="goHome()">🏠</div>
-      <div class="title-small">PICK YOUR CAR!</div>
+      <div class="title-small">BUILD YOUR CAR!</div>
       <div style="width: 14vmin;"></div>
     </div>
-    <div class="choices" id="avatar-choices" style="margin-top: 4vh;"></div>
+    <div class="builder-wrap" id="builderWrap"></div>
   </div>
 
   <!-- Map screen -->
@@ -365,13 +376,14 @@ function toggleSound() {
 function carSVG(opts={}) {
   const color = opts.color || '#e53935';
   const accent = opts.accent || '#ffeb3b';
+  const wheelColor = opts.wheelColor || '#9e9e9e';
   const letter = opts.letter || '';
   const number = opts.number || '';
   const eyes = opts.eyes !== false;
   return `<svg class="car-svg ${opts.size||''}" viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
     <ellipse cx="110" cy="118" rx="95" ry="10" fill="rgba(0,0,0,0.2)"/>
     <path d="M20,95 Q20,55 65,45 L155,45 Q200,55 200,95 L200,108 L20,108 Z" fill="${color}" stroke="#000" stroke-width="4" stroke-linejoin="round"/>
-    <path d="M22,80 L198,80" stroke="${accent}" stroke-width="3" opacity="0.7"/>
+    <path d="M22,82 L198,82" stroke="${accent}" stroke-width="6" stroke-linecap="round"/>
     <path d="M60,48 Q65,18 110,18 Q155,18 160,48 Z" fill="#b3e5fc" stroke="#000" stroke-width="4" stroke-linejoin="round"/>
     ${eyes ? `
       <circle cx="88" cy="32" r="11" fill="white" stroke="#000" stroke-width="2.5"/>
@@ -383,10 +395,10 @@ function carSVG(opts={}) {
     ` : ''}
     <ellipse cx="200" cy="78" rx="9" ry="7" fill="#fff700" stroke="#000" stroke-width="2"/>
     <circle cx="60" cy="108" r="22" fill="#212121" stroke="#000" stroke-width="3"/>
-    <circle cx="60" cy="108" r="11" fill="#9e9e9e" stroke="#000" stroke-width="1.5"/>
+    <circle cx="60" cy="108" r="11" fill="${wheelColor}" stroke="#000" stroke-width="1.5"/>
     <circle cx="60" cy="108" r="4" fill="#424242"/>
     <circle cx="160" cy="108" r="22" fill="#212121" stroke="#000" stroke-width="3"/>
-    <circle cx="160" cy="108" r="11" fill="#9e9e9e" stroke="#000" stroke-width="1.5"/>
+    <circle cx="160" cy="108" r="11" fill="${wheelColor}" stroke="#000" stroke-width="1.5"/>
     <circle cx="160" cy="108" r="4" fill="#424242"/>
     ${letter ? `<circle cx="110" cy="72" r="20" fill="white" stroke="#000" stroke-width="3"/>
       <text x="110" y="82" font-size="28" font-weight="900" text-anchor="middle" fill="#000" font-family="Arial Black, sans-serif">${letter}</text>` : ''}
@@ -436,6 +448,9 @@ const State = {
   stars: new Array(NUM_LEVELS).fill(0),
   unlockedUpTo: 0,
   playerColor: '#e53935',
+  playerAccent: '#ffeb3b',
+  playerWheel: '#9e9e9e',
+  playerNumber: '3',
   load() {
     try {
       const s = JSON.parse(localStorage.getItem('aj-race-state') || '{}');
@@ -444,12 +459,27 @@ const State = {
       }
       if (typeof s.unlockedUpTo === 'number') this.unlockedUpTo = Math.min(s.unlockedUpTo, NUM_LEVELS - 1);
       if (typeof s.playerColor === 'string') this.playerColor = s.playerColor;
+      if (typeof s.playerAccent === 'string') this.playerAccent = s.playerAccent;
+      if (typeof s.playerWheel === 'string') this.playerWheel = s.playerWheel;
+      if (typeof s.playerNumber === 'string') this.playerNumber = s.playerNumber;
     } catch(e) {}
   },
   save() {
     try {
-      localStorage.setItem('aj-race-state', JSON.stringify({ stars: this.stars, unlockedUpTo: this.unlockedUpTo, playerColor: this.playerColor }));
+      localStorage.setItem('aj-race-state', JSON.stringify({
+        stars: this.stars, unlockedUpTo: this.unlockedUpTo,
+        playerColor: this.playerColor, playerAccent: this.playerAccent,
+        playerWheel: this.playerWheel, playerNumber: this.playerNumber
+      }));
     } catch(e) {}
+  },
+  playerCarOpts(extra={}) {
+    return Object.assign({
+      color: this.playerColor,
+      accent: this.playerAccent,
+      wheelColor: this.playerWheel,
+      number: this.playerNumber
+    }, extra);
   },
   recordWin(level, stars) {
     this.stars[level] = Math.max(this.stars[level], stars);
@@ -515,7 +545,7 @@ function goMap() {
 
 // ========================= HOME =========================
 function renderHome() {
-  $('home-car').innerHTML = carSVG({ color: State.playerColor, accent: '#ffeb3b', size: '' });
+  $('home-car').innerHTML = carSVG(State.playerCarOpts({ size: '' }));
   // clouds
   const clouds = $('clouds');
   clouds.innerHTML = '';
@@ -525,38 +555,119 @@ function renderHome() {
   }
 }
 
-// ========================= AVATAR PICKER =========================
-function showAvatarPicker() {
+// ========================= CAR BUILDER =========================
+const ACCENT_COLORS = [
+  { name: 'yellow', hex: '#ffeb3b' },
+  { name: 'white',  hex: '#ffffff' },
+  { name: 'red',    hex: '#e53935' },
+  { name: 'blue',   hex: '#1e88e5' },
+  { name: 'green',  hex: '#43a047' },
+  { name: 'black',  hex: '#212121' }
+];
+const WHEEL_COLORS = [
+  { name: 'silver', hex: '#9e9e9e' },
+  { name: 'gold',   hex: '#ffd54f' },
+  { name: 'red',    hex: '#e53935' },
+  { name: 'blue',   hex: '#1e88e5' },
+  { name: 'black',  hex: '#212121' }
+];
+const NUMBER_OPTIONS = ['1','2','3','4','5','6','7','8','9'];
+
+function showCarBuilder() {
   Audio.init(); Audio.resume(); Audio.startMusic();
   Audio.tap();
-  Audio.speak("Pick your car A J!");
-  showScreen('avatar');
-  const wrap = $('avatar-choices');
+  Audio.speak("Build your car A J!");
+  showScreen('builder');
+  renderBuilder();
+}
+
+function renderBuilder() {
+  const wrap = $('builderWrap');
   wrap.innerHTML = '';
-  wrap.style.flexWrap = 'wrap';
-  wrap.style.maxWidth = '90vw';
-  CAR_COLORS.forEach(c => {
-    const choice = el('div', { class: 'choice bounce', style: 'margin: 2vmin;' });
-    choice.innerHTML = carSVG({ color: c.hex, size: 'small' });
-    if (State.playerColor === c.hex) {
-      choice.style.filter = 'drop-shadow(0 0 4vmin gold)';
-    }
-    choice.addEventListener('click', () => {
-      State.playerColor = c.hex;
-      State.save();
-      Audio.good(); Audio.honk();
-      Audio.speak(`${c.name} car! Vroom!`);
-      // visual confirm
-      document.querySelectorAll('#avatar-choices .choice').forEach(el => el.style.filter = '');
-      choice.style.filter = 'drop-shadow(0 0 4vmin gold)';
-      choice.classList.add('correct');
-      setTimeout(() => {
-        renderHome();
-        showScreen('home');
-      }, 1100);
-    });
-    wrap.appendChild(choice);
+
+  const preview = el('div', { class: 'builder-preview', id: 'builderPreview' });
+  preview.innerHTML = carSVG(State.playerCarOpts({ size: '' }));
+  wrap.appendChild(preview);
+
+  const refreshPreview = () => {
+    preview.innerHTML = carSVG(State.playerCarOpts({ size: '' }));
+  };
+
+  // Body color row
+  wrap.appendChild(buildSwatchRow('🚗 BODY', CAR_COLORS, State.playerColor, (c) => {
+    State.playerColor = c.hex; State.save();
+    Audio.good(); Audio.speak(`${c.name} car!`);
+    refreshPreview();
+  }));
+
+  // Accent stripe row
+  wrap.appendChild(buildSwatchRow('✨ STRIPE', ACCENT_COLORS, State.playerAccent, (c) => {
+    State.playerAccent = c.hex; State.save();
+    Audio.good(); Audio.speak(`${c.name} stripe!`);
+    refreshPreview();
+  }));
+
+  // Wheel color row
+  wrap.appendChild(buildSwatchRow('⚙️ WHEELS', WHEEL_COLORS, State.playerWheel, (c) => {
+    State.playerWheel = c.hex; State.save();
+    Audio.good(); Audio.speak(`${c.name} wheels!`);
+    refreshPreview();
+  }));
+
+  // Number row
+  const numRow = el('div', { class: 'builder-row' });
+  numRow.appendChild(el('div', { class: 'builder-label' }, '🔢 NUMBER'));
+  const numSwatches = el('div', { class: 'builder-swatches' });
+  // include a "no number" option
+  const noneSwatch = el('div', { class: 'swatch num' + (State.playerNumber === '' ? ' selected' : ''), style: 'background: linear-gradient(180deg,#bdbdbd,#616161);' }, '×');
+  noneSwatch.addEventListener('click', () => {
+    State.playerNumber = ''; State.save();
+    Audio.tap();
+    refreshPreview();
+    numSwatches.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+    noneSwatch.classList.add('selected');
   });
+  numSwatches.appendChild(noneSwatch);
+  NUMBER_OPTIONS.forEach(n => {
+    const sw = el('div', { class: 'swatch num' + (State.playerNumber === n ? ' selected' : '') }, n);
+    sw.addEventListener('click', () => {
+      State.playerNumber = n; State.save();
+      Audio.star(); Audio.speak(`Number ${n}!`);
+      refreshPreview();
+      numSwatches.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+      sw.classList.add('selected');
+    });
+    numSwatches.appendChild(sw);
+  });
+  numRow.appendChild(numSwatches);
+  wrap.appendChild(numRow);
+
+  // Done button
+  const done = el('button', { class: 'btn green', style: 'font-size: 6vmin; margin-top: 1vh;' }, '✓ DONE!');
+  done.addEventListener('click', () => {
+    Audio.honk(); Audio.win();
+    Audio.speak("Vroom! Let's go A J!");
+    renderHome();
+    setTimeout(() => showScreen('home'), 600);
+  });
+  wrap.appendChild(done);
+}
+
+function buildSwatchRow(label, colors, selected, onPick) {
+  const row = el('div', { class: 'builder-row' });
+  row.appendChild(el('div', { class: 'builder-label' }, label));
+  const swatches = el('div', { class: 'builder-swatches' });
+  colors.forEach(c => {
+    const sw = el('div', { class: 'swatch' + (selected === c.hex ? ' selected' : ''), style: `background: ${c.hex};` });
+    sw.addEventListener('click', () => {
+      swatches.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+      sw.classList.add('selected');
+      onPick(c);
+    });
+    swatches.appendChild(sw);
+  });
+  row.appendChild(swatches);
+  return row;
 }
 
 // ========================= MAP =========================
@@ -1442,7 +1553,7 @@ function levelDrive() {
     </div>
     <div class="drive-arrow left">⬅️</div>
     <div class="drive-arrow right">➡️</div>
-    <div class="drive-car" id="driveCar" style="left: ${LANES[laneIdx]}vw;">${carSVG({ color: State.playerColor, size: 'small' })}</div>
+    <div class="drive-car" id="driveCar" style="left: ${LANES[laneIdx]}vw;">${carSVG(State.playerCarOpts({ size: 'small' }))}</div>
     <div class="drive-tap-left" id="driveLeft"></div>
     <div class="drive-tap-right" id="driveRight"></div>
   `;
@@ -1539,7 +1650,7 @@ function levelRace() {
       <div class="race-track-lines"></div>
     </div>
     <div class="race-finish" id="finish" style="top: 12vh;"></div>
-    <div class="racer player" id="player" style="bottom:8vh;">${carSVG({ color: State.playerColor, size:'small' })}</div>
+    <div class="racer player" id="player" style="bottom:8vh;">${carSVG(State.playerCarOpts({ size:'small' }))}</div>
     <div class="racer opponent" id="opponent" style="bottom:8vh;">${truckSVG({ color:'#c62828', size:'small' })}</div>
     <div class="tap-zone" id="tapZone"></div>
   `;
