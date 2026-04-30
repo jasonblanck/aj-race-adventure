@@ -151,6 +151,37 @@ html, body { width:100%; height:100%; overflow:hidden; background:#000; font-fam
 /* ------- Sound toggle ------- */
 .sound-btn { position:fixed; top:2vh; right:2vw; z-index:200; }
 
+/* ------- Trace level ------- */
+.trace-svg { width: 70vmin; max-width: 480px; height: 70vmin; max-height: 480px; touch-action: none; }
+.trace-outline { fill: none; stroke: #fff; stroke-width: 14; stroke-linecap: round; stroke-linejoin: round; opacity: 0.5; stroke-dasharray: 6 8; }
+.trace-progress { fill: none; stroke: #ffeb3b; stroke-width: 16; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 2vmin #ffeb3b); }
+.trace-dot { fill: #fff; stroke: #1565c0; stroke-width: 3; }
+.trace-dot.active { fill: #ffeb3b; stroke: #d32f2f; animation: cp-pulse 1s ease-in-out infinite; filter: drop-shadow(0 0 1.5vmin gold); }
+.trace-dot.done { fill: #66bb6a; stroke: #1b5e20; }
+.trace-arrow { font-size: 6vmin; fill: #d32f2f; }
+
+/* ------- Number line level ------- */
+.numline { display:flex; gap:1.5vmin; flex-wrap:wrap; justify-content:center; max-width: 90vw; padding: 2vh 2vw; }
+.numline-cell { width: 14vmin; height: 14vmin; display:flex; align-items:center; justify-content:center; font-size: 8vmin; font-weight:900; color:#fff; background: linear-gradient(180deg,#42a5f5,#1565c0); border: 0.6vmin solid #ffeb3b; border-radius: 3vmin; box-shadow: 0 0.8vmin 0 #0d47a1; -webkit-text-stroke: 0.4vmin #000; paint-order: stroke fill; cursor:pointer; transition: transform 0.15s; }
+.numline-cell.target { animation: target-glow 0.8s ease-in-out infinite; transform: scale(1.1); }
+.numline-cell.done { background: linear-gradient(180deg,#66bb6a,#2e7d32); box-shadow: 0 0.8vmin 0 #1b5e20, 0 0 3vmin gold; }
+.numline-cell.wrong { animation: shake 0.4s; }
+
+/* ------- Drive level ------- */
+.drive-screen { position:absolute; inset:0; overflow:hidden; }
+.drive-road { position:absolute; left:8vw; right:8vw; top:0; bottom:0; background: linear-gradient(180deg,#424242,#212121); border-left: 1vmin solid #ffeb3b; border-right: 1vmin solid #ffeb3b; }
+.drive-lane-line { position:absolute; top:0; bottom:0; width: 0.8vmin; background: repeating-linear-gradient(180deg, white 0 6vmin, transparent 6vmin 14vmin); animation: scroll-down 0.6s linear infinite; }
+.drive-car { position:absolute; bottom: 8vh; width: 22vmin; transform: translateX(-50%); transition: left 0.18s ease-out; z-index:10; }
+.drive-coin { position:absolute; width: 12vmin; height: 12vmin; transform: translateX(-50%); display:flex; align-items:center; justify-content:center; font-size: 9vmin; z-index: 5; pointer-events:none; }
+.drive-coin.collected { animation: caught-poof 0.4s forwards; }
+.drive-tap-left, .drive-tap-right { position:absolute; top:0; bottom:0; width:50%; cursor:pointer; z-index: 20; }
+.drive-tap-left { left:0; }
+.drive-tap-right { right:0; }
+.drive-arrow { position:absolute; bottom: 14vh; font-size: 12vmin; opacity: 0.55; pointer-events:none; animation: drive-arrow-bounce 0.8s ease-in-out infinite; z-index: 15; }
+.drive-arrow.left { left: 6vw; }
+.drive-arrow.right { right: 6vw; }
+@keyframes drive-arrow-bounce { 0%,100% { transform: scale(1);} 50% { transform: scale(1.15);} }
+
 /* ------- Misc ------- */
 .hidden { display:none !important; }
 .flex-row { display:flex; flex-direction:row; gap: 3vmin; align-items:center; justify-content:center; flex-wrap:wrap; }
@@ -180,7 +211,17 @@ html, body { width:100%; height:100%; overflow:hidden; background:#000; font-fam
     <div class="subtitle" style="margin: -1vh 0 1vh 0;">⭐ Hi AJ! ⭐</div>
     <div id="home-car" style="margin: 2vh 0;"></div>
     <button class="btn" onclick="startGame()">▶ PLAY</button>
-    <div class="subtitle" style="margin-top: 4vh;">Tap PLAY to start!</div>
+    <button class="btn blue" style="margin-top: 2vh; font-size: 5vmin;" onclick="showAvatarPicker()">🚗 PICK A CAR</button>
+  </div>
+
+  <!-- Avatar picker -->
+  <div class="screen" id="screen-avatar">
+    <div class="top-bar">
+      <div class="icon-btn" onclick="goHome()">🏠</div>
+      <div class="title-small">PICK YOUR CAR!</div>
+      <div style="width: 14vmin;"></div>
+    </div>
+    <div class="choices" id="avatar-choices" style="margin-top: 4vh;"></div>
   </div>
 
   <!-- Map screen -->
@@ -381,11 +422,20 @@ function truckSVG(opts={}) {
 }
 
 // ========================= STATE =========================
-const NUM_LEVELS = 10;
+const NUM_LEVELS = 13;
+const CAR_COLORS = [
+  { name: 'red',    hex: '#e53935' },
+  { name: 'blue',   hex: '#1e88e5' },
+  { name: 'yellow', hex: '#fdd835' },
+  { name: 'green',  hex: '#43a047' },
+  { name: 'purple', hex: '#8e24aa' },
+  { name: 'orange', hex: '#fb8c00' }
+];
 const State = {
   currentLevel: 0,
   stars: new Array(NUM_LEVELS).fill(0),
   unlockedUpTo: 0,
+  playerColor: '#e53935',
   load() {
     try {
       const s = JSON.parse(localStorage.getItem('aj-race-state') || '{}');
@@ -393,11 +443,12 @@ const State = {
         this.stars = new Array(NUM_LEVELS).fill(0).map((_, i) => s.stars[i] || 0);
       }
       if (typeof s.unlockedUpTo === 'number') this.unlockedUpTo = Math.min(s.unlockedUpTo, NUM_LEVELS - 1);
+      if (typeof s.playerColor === 'string') this.playerColor = s.playerColor;
     } catch(e) {}
   },
   save() {
     try {
-      localStorage.setItem('aj-race-state', JSON.stringify({ stars: this.stars, unlockedUpTo: this.unlockedUpTo }));
+      localStorage.setItem('aj-race-state', JSON.stringify({ stars: this.stars, unlockedUpTo: this.unlockedUpTo, playerColor: this.playerColor }));
     } catch(e) {}
   },
   recordWin(level, stars) {
@@ -464,7 +515,7 @@ function goMap() {
 
 // ========================= HOME =========================
 function renderHome() {
-  $('home-car').innerHTML = carSVG({ color: '#e53935', accent: '#ffeb3b', size: '' });
+  $('home-car').innerHTML = carSVG({ color: State.playerColor, accent: '#ffeb3b', size: '' });
   // clouds
   const clouds = $('clouds');
   clouds.innerHTML = '';
@@ -474,18 +525,55 @@ function renderHome() {
   }
 }
 
+// ========================= AVATAR PICKER =========================
+function showAvatarPicker() {
+  Audio.init(); Audio.resume(); Audio.startMusic();
+  Audio.tap();
+  Audio.speak("Pick your car A J!");
+  showScreen('avatar');
+  const wrap = $('avatar-choices');
+  wrap.innerHTML = '';
+  wrap.style.flexWrap = 'wrap';
+  wrap.style.maxWidth = '90vw';
+  CAR_COLORS.forEach(c => {
+    const choice = el('div', { class: 'choice bounce', style: 'margin: 2vmin;' });
+    choice.innerHTML = carSVG({ color: c.hex, size: 'small' });
+    if (State.playerColor === c.hex) {
+      choice.style.filter = 'drop-shadow(0 0 4vmin gold)';
+    }
+    choice.addEventListener('click', () => {
+      State.playerColor = c.hex;
+      State.save();
+      Audio.good(); Audio.honk();
+      Audio.speak(`${c.name} car! Vroom!`);
+      // visual confirm
+      document.querySelectorAll('#avatar-choices .choice').forEach(el => el.style.filter = '');
+      choice.style.filter = 'drop-shadow(0 0 4vmin gold)';
+      choice.classList.add('correct');
+      setTimeout(() => {
+        renderHome();
+        showScreen('home');
+      }, 1100);
+    });
+    wrap.appendChild(choice);
+  });
+}
+
 // ========================= MAP =========================
 const LEVELS = [
-  { id: 0, label: 'A B C',   icon: '🅰️', title: 'Letter Match',       x: 15, y: 92, fn: 'levelLetterMatch' },
-  { id: 1, label: 'a A',     icon: '🔡', title: 'Big and Little',      x: 42, y: 86, fn: 'levelUpperLower' },
-  { id: 2, label: 'Color',   icon: '🎨', title: 'Color Garage',        x: 70, y: 92, fn: 'levelColorMatch' },
-  { id: 3, label: '1 2 3',   icon: '🔢', title: 'Count the Cars',      x: 86, y: 76, fn: 'levelCounting' },
-  { id: 4, label: 'Same',    icon: '👀', title: 'Same or Different',   x: 60, y: 68, fn: 'levelSameDiff' },
-  { id: 5, label: 'Find',    icon: '🔍', title: 'Letter Hunt',         x: 28, y: 62, fn: 'levelLetterHunt' },
-  { id: 6, label: 'Sounds',  icon: '🔊', title: 'Letter Sounds',       x: 14, y: 46, fn: 'levelPhonics' },
-  { id: 7, label: 'Pairs',   icon: '🃏', title: 'Memory Match',        x: 42, y: 40, fn: 'levelMemory' },
-  { id: 8, label: 'Catch',   icon: '⚡', title: 'Letter Catch',        x: 72, y: 30, fn: 'levelCatch' },
-  { id: 9, label: 'RACE!',   icon: '🏁', title: 'Big Race',            x: 50, y: 12, fn: 'levelRace' }
+  { id: 0,  label: 'A B C',   icon: '🅰️', title: 'Letter Match',       x: 12, y: 94, fn: 'levelLetterMatch' },
+  { id: 1,  label: 'a A',     icon: '🔡', title: 'Big and Little',      x: 32, y: 90, fn: 'levelUpperLower' },
+  { id: 2,  label: '1→10',    icon: '🧮', title: 'Number Line',         x: 55, y: 94, fn: 'levelNumberLine' },
+  { id: 3,  label: 'Color',   icon: '🎨', title: 'Color Garage',        x: 80, y: 90, fn: 'levelColorMatch' },
+  { id: 4,  label: '1 2 3',   icon: '🔢', title: 'Count the Cars',      x: 88, y: 76, fn: 'levelCounting' },
+  { id: 5,  label: 'Same',    icon: '👀', title: 'Same or Different',   x: 65, y: 70, fn: 'levelSameDiff' },
+  { id: 6,  label: 'Find',    icon: '🔍', title: 'Letter Hunt',         x: 38, y: 66, fn: 'levelLetterHunt' },
+  { id: 7,  label: 'Sounds',  icon: '🔊', title: 'Letter Sounds',       x: 14, y: 58, fn: 'levelPhonics' },
+  { id: 8,  label: 'Trace',   icon: '✏️', title: 'Trace the Letter',    x: 24, y: 44, fn: 'levelTrace' },
+  { id: 9,  label: 'Pairs',   icon: '🃏', title: 'Memory Match',        x: 50, y: 38, fn: 'levelMemory' },
+  { id: 10, label: 'Catch',   icon: '⚡', title: 'Letter Catch',        x: 75, y: 32, fn: 'levelCatch' },
+  { id: 11, label: 'Drive',   icon: '🚗', title: 'Drive!',              x: 80, y: 18, fn: 'levelDrive' },
+  { id: 12, label: 'RACE!',   icon: '🏁', title: 'Big Race',            x: 45, y: 8,  fn: 'levelRace' }
 ];
 
 function renderMap() {
@@ -1108,6 +1196,334 @@ function levelCatch() {
   };
 }
 
+// ========================= LEVEL: NUMBER LINE 1-10 =========================
+function levelNumberLine() {
+  const ga = $('gameArea');
+  ga.innerHTML = `<div class="numline" id="numline"></div>`;
+  const numline = $('numline');
+  let target = 1;
+  setInstruction(`Tap the 1!`);
+  Audio.speak(`Let's count A J! Tap one!`);
+  setProgress(0, 10);
+
+  const cells = [];
+  for (let n = 1; n <= 10; n++) {
+    const cell = el('div', { class: 'numline-cell' + (n === 1 ? ' target' : '') }, String(n));
+    cell.dataset.n = n;
+    cell.addEventListener('click', () => {
+      if (cell.classList.contains('done')) return;
+      const num = parseInt(cell.dataset.n, 10);
+      if (num === target) {
+        cell.classList.remove('target');
+        cell.classList.add('done');
+        Audio.star();
+        Audio.speak(String(target));
+        target++;
+        setProgress(target - 1, 10);
+        if (target > 10) {
+          Audio.speak("Ten! You counted to ten A J!");
+          setTimeout(() => levelComplete(3), 1200);
+        } else {
+          setInstruction(`Tap the ${target}!`);
+          cells[target - 1].classList.add('target');
+        }
+      } else {
+        cell.classList.add('wrong');
+        Audio.wrong();
+        setTimeout(() => cell.classList.remove('wrong'), 400);
+      }
+    });
+    numline.appendChild(cell);
+    cells.push(cell);
+  }
+  levelCleanup = () => {};
+}
+
+// ========================= LEVEL: TRACE THE LETTER =========================
+const TRACE_LETTERS = {
+  'A': { strokes: [[[20,90],[50,12],[80,90]], [[33,55],[67,55]]], word: 'Apple' },
+  'J': { strokes: [[[60,12],[60,68],[50,82],[35,82],[28,68]]], word: 'Jump' },
+  'C': { strokes: [[[78,28],[58,15],[38,28],[26,52],[38,80],[58,93],[78,82]]], word: 'Car' },
+  'L': { strokes: [[[30,12],[30,90],[78,90]]], word: 'Lightning' },
+  'M': { strokes: [[[15,90],[20,15],[50,55],[80,15],[85,90]]], word: 'Mack' }
+};
+function levelTrace() {
+  const letterKeys = Object.keys(TRACE_LETTERS);
+  let round = 0;
+  const total = 4;
+  let usedLetters = [];
+
+  function nextRound() {
+    if (round >= total) { levelComplete(3); return; }
+    setProgress(round, total);
+    // pick a letter not used recently
+    const available = letterKeys.filter(l => !usedLetters.includes(l));
+    const pool = available.length ? available : letterKeys;
+    const letter = pool[Math.floor(Math.random() * pool.length)];
+    usedLetters.push(letter);
+    if (usedLetters.length > 3) usedLetters.shift();
+    setInstruction(`Trace the ${letter}!`);
+    Audio.speak(`Trace the letter ${letter} A J! Drag your finger.`);
+
+    const ga = $('gameArea');
+    ga.innerHTML = `<div id="trace-wrap" style="display:flex;align-items:center;justify-content:center;"></div>`;
+    const wrap = $('trace-wrap');
+
+    const data = TRACE_LETTERS[letter];
+    const strokes = data.strokes;
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('class', 'trace-svg');
+    svg.setAttribute('viewBox', '0 0 100 100');
+
+    // outline guide path
+    strokes.forEach(stroke => {
+      const guide = document.createElementNS(SVG_NS, 'polyline');
+      guide.setAttribute('class', 'trace-outline');
+      guide.setAttribute('points', stroke.map(p => p.join(',')).join(' '));
+      svg.appendChild(guide);
+    });
+
+    // active progress polylines (one per stroke, built up as user drags)
+    const progressLines = strokes.map(() => {
+      const pl = document.createElementNS(SVG_NS, 'polyline');
+      pl.setAttribute('class', 'trace-progress');
+      pl.setAttribute('points', '');
+      svg.appendChild(pl);
+      return pl;
+    });
+
+    // dots
+    const dotEls = [];
+    strokes.forEach((stroke, si) => {
+      const arr = [];
+      stroke.forEach((p, pi) => {
+        const c = document.createElementNS(SVG_NS, 'circle');
+        c.setAttribute('cx', p[0]);
+        c.setAttribute('cy', p[1]);
+        c.setAttribute('r', pi === 0 ? 5 : 3.5);
+        c.setAttribute('class', 'trace-dot' + (si === 0 && pi === 0 ? ' active' : ''));
+        svg.appendChild(c);
+        arr.push(c);
+      });
+      dotEls.push(arr);
+    });
+
+    wrap.appendChild(svg);
+
+    // tracing state
+    let curStroke = 0;
+    let curPoint = 0; // next point to reach (0 means waiting at start)
+    let dragging = false;
+
+    function svgCoords(e) {
+      const rect = svg.getBoundingClientRect();
+      const x = ((e.touches ? e.touches[0].clientX : e.clientX) - rect.left) / rect.width * 100;
+      const y = ((e.touches ? e.touches[0].clientY : e.clientY) - rect.top) / rect.height * 100;
+      return [x, y];
+    }
+    function dist(a, b) { return Math.hypot(a[0]-b[0], a[1]-b[1]); }
+
+    function setProgressLine(strokeIdx, points) {
+      progressLines[strokeIdx].setAttribute('points', points.map(p => p.join(',')).join(' '));
+    }
+
+    function reachedStart(coords) {
+      const startPt = strokes[curStroke][0];
+      return dist(coords, startPt) < 12;
+    }
+
+    function tryAdvance(coords) {
+      const stroke = strokes[curStroke];
+      // collect all points already reached
+      const reached = stroke.slice(0, curPoint + 1);
+      // start by drawing from reached[last] to coords (live cursor)
+      const live = [...reached, coords];
+      setProgressLine(curStroke, live);
+
+      // check next point
+      if (curPoint + 1 < stroke.length) {
+        const next = stroke[curPoint + 1];
+        if (dist(coords, next) < 12) {
+          curPoint++;
+          dotEls[curStroke][curPoint].classList.remove('active');
+          dotEls[curStroke][curPoint].classList.add('done');
+          Audio.star();
+          // glow next
+          if (curPoint + 1 < stroke.length) {
+            // (we don't pre-mark all dots active — only first; but we can flash next)
+          }
+          // if reached end of stroke
+          if (curPoint === stroke.length - 1) {
+            setProgressLine(curStroke, stroke); // snap to clean
+            Audio.good();
+            if (curStroke + 1 < strokes.length) {
+              curStroke++;
+              curPoint = 0;
+              dotEls[curStroke][0].classList.add('active');
+              dragging = false;
+              Audio.speak("Now the next part!");
+            } else {
+              // letter complete
+              dragging = false;
+              completeLetter();
+            }
+          }
+        }
+      }
+    }
+
+    function completeLetter() {
+      Audio.win();
+      Audio.speak(`${letter}! ${letter} like ${data.word}!`);
+      svg.style.transition = 'transform 0.4s';
+      svg.style.transform = 'scale(1.1) rotate(2deg)';
+      round++;
+      setTimeout(nextRound, 1500);
+    }
+
+    function onDown(e) {
+      e.preventDefault();
+      const c = svgCoords(e);
+      if (reachedStart(c)) {
+        dragging = true;
+        Audio.tap();
+      }
+    }
+    function onMove(e) {
+      if (!dragging) return;
+      e.preventDefault();
+      const c = svgCoords(e);
+      tryAdvance(c);
+    }
+    function onUp(e) {
+      if (!dragging) return;
+      dragging = false;
+      // snap progress line to last reached point so it doesn't dangle
+      const reached = strokes[curStroke].slice(0, curPoint + 1);
+      setProgressLine(curStroke, reached);
+    }
+
+    svg.addEventListener('pointerdown', onDown);
+    svg.addEventListener('pointermove', onMove);
+    svg.addEventListener('pointerup', onUp);
+    svg.addEventListener('pointercancel', onUp);
+    svg.addEventListener('pointerleave', onUp);
+    // touch fallbacks (some older devices)
+    svg.addEventListener('touchstart', onDown, { passive: false });
+    svg.addEventListener('touchmove', onMove, { passive: false });
+    svg.addEventListener('touchend', onUp);
+  }
+  nextRound();
+  levelCleanup = () => {};
+}
+
+// ========================= LEVEL: DRIVE! (steering) =========================
+function levelDrive() {
+  const screen = $('screen-level');
+  $('gameArea').innerHTML = '';
+  setInstruction(`Tap left or right to drive!`);
+  Audio.speak(`Drive A J! Tap left or right to get the coins!`);
+  Audio.vroom();
+
+  const target = 10;
+  let collected = 0;
+  setProgress(0, target);
+
+  const wrap = el('div', { class: 'drive-screen', id: 'driveWrap' });
+  // 3 lanes: positions in vw — within the road area (roughly 8vw to 92vw, lanes at 25, 50, 75 of viewport)
+  const LANES = [27, 50, 73]; // vw
+  let laneIdx = 1;
+
+  wrap.innerHTML = `
+    <div class="drive-road">
+      <div class="drive-lane-line" style="left: 33%;"></div>
+      <div class="drive-lane-line" style="left: 66%;"></div>
+    </div>
+    <div class="drive-arrow left">⬅️</div>
+    <div class="drive-arrow right">➡️</div>
+    <div class="drive-car" id="driveCar" style="left: ${LANES[laneIdx]}vw;">${carSVG({ color: State.playerColor, size: 'small' })}</div>
+    <div class="drive-tap-left" id="driveLeft"></div>
+    <div class="drive-tap-right" id="driveRight"></div>
+  `;
+  screen.appendChild(wrap);
+
+  let stopped = false;
+  let coins = []; // {el, lane, y, hit}
+  let spawnInt, fallInt;
+
+  function moveLane(dir) {
+    if (stopped) return;
+    const newIdx = Math.max(0, Math.min(LANES.length - 1, laneIdx + dir));
+    if (newIdx !== laneIdx) {
+      laneIdx = newIdx;
+      $('driveCar').style.left = LANES[laneIdx] + 'vw';
+      Audio.tap();
+    }
+  }
+
+  $('driveLeft').addEventListener('click', () => moveLane(-1));
+  $('driveRight').addEventListener('click', () => moveLane(1));
+
+  function spawnCoin() {
+    if (stopped) return;
+    const lane = Math.floor(Math.random() * LANES.length);
+    const isStar = Math.random() < 0.4;
+    const c = el('div', { class: 'drive-coin', style: `left:${LANES[lane]}vw; top:-12vmin;` }, isStar ? '⭐' : '🪙');
+    wrap.appendChild(c);
+    coins.push({ el: c, lane, y: -12, hit: false });
+  }
+
+  spawnInt = setInterval(spawnCoin, 950);
+  spawnCoin();
+
+  fallInt = setInterval(() => {
+    if (stopped) return;
+    coins = coins.filter(coin => {
+      if (!coin.el.parentNode) return false;
+      coin.y += 1.6; // vh per tick (60ms)
+      coin.el.style.top = coin.y + 'vh';
+      // car is at bottom: ~78vh from top (8vh from bottom + ~14vh car height) — when coin reaches ~70-82vh and lane matches, collect
+      if (!coin.hit && coin.y > 70 && coin.y < 88 && coin.lane === laneIdx) {
+        coin.hit = true;
+        coin.el.classList.add('collected');
+        Audio.star();
+        collected++;
+        setProgress(collected, target);
+        setTimeout(() => coin.el.remove(), 400);
+        if (collected >= target) {
+          finish(true);
+        }
+        return false;
+      }
+      if (coin.y > 100) {
+        coin.el.remove();
+        return false;
+      }
+      return true;
+    });
+  }, 60);
+
+  function finish(won) {
+    if (stopped) return;
+    stopped = true;
+    clearInterval(spawnInt); clearInterval(fallInt);
+    coins.forEach(c => c.el.remove());
+    Audio.honk();
+    Audio.speak("You got them all A J!");
+    setTimeout(() => {
+      wrap.remove();
+      levelComplete(3);
+    }, 800);
+  }
+
+  levelCleanup = () => {
+    stopped = true;
+    clearInterval(spawnInt); clearInterval(fallInt);
+    if (wrap.parentNode) wrap.remove();
+  };
+}
+
 // ========================= LEVEL 8: BIG RACE =========================
 function levelRace() {
   const screen = $('screen-level');
@@ -1123,7 +1539,7 @@ function levelRace() {
       <div class="race-track-lines"></div>
     </div>
     <div class="race-finish" id="finish" style="top: 12vh;"></div>
-    <div class="racer player" id="player" style="bottom:8vh;">${carSVG({ color:'#e53935', size:'small' })}</div>
+    <div class="racer player" id="player" style="bottom:8vh;">${carSVG({ color: State.playerColor, size:'small' })}</div>
     <div class="racer opponent" id="opponent" style="bottom:8vh;">${truckSVG({ color:'#c62828', size:'small' })}</div>
     <div class="tap-zone" id="tapZone"></div>
   `;
