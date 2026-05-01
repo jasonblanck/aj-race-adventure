@@ -151,6 +151,23 @@ html, body { width:100%; height:100%; overflow:hidden; background:#000; font-fam
 /* ------- Sound toggle ------- */
 .sound-btn { position:fixed; top:2vh; right:2vw; z-index:200; }
 
+/* ------- Prize reveal (in win overlay) ------- */
+.prize-reveal { display:flex; flex-direction:column; align-items:center; gap: 1vh; margin-top: 1vh; }
+.prize-banner { font-size: 6vmin; font-weight:900; color:#ffeb3b; -webkit-text-stroke: 0.5vmin #d32f2f; paint-order: stroke fill; text-shadow: 0 0.5vmin 0 #000, 0 0 4vmin #ffeb3b; animation: prize-banner-bounce 0.5s ease-out; letter-spacing: 0.4vmin; }
+@keyframes prize-banner-bounce { 0% { transform: scale(0); opacity:0;} 60% { transform: scale(1.15); opacity:1;} 100% { transform: scale(1); opacity:1;} }
+.prize-emoji { font-size: 22vmin; animation: prize-emoji-pop 0.8s ease-out; filter: drop-shadow(0 0 4vmin gold); line-height: 1; }
+@keyframes prize-emoji-pop { 0% { transform: scale(0) rotate(-360deg);} 70% { transform: scale(1.3) rotate(20deg);} 100% { transform: scale(1) rotate(0);} }
+.prize-name { font-size: 5vmin; font-weight:900; color:#fff; -webkit-text-stroke: 0.4vmin #000; paint-order: stroke fill; }
+
+/* ------- Trophy Room ------- */
+.prize-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5vmin; padding: 1vh 1vw; max-height: 78vh; overflow-y: auto; width: 94vw; max-width: 600px; }
+.prize-cell { aspect-ratio: 1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap: 0.4vmin; background: linear-gradient(180deg, rgba(33,33,33,0.6), rgba(0,0,0,0.6)); border: 0.4vmin solid #1565c0; border-radius: 2.5vmin; padding: 0.5vmin; cursor:pointer; }
+.prize-cell.got { background: linear-gradient(180deg, #ffd54f, #ff8f00); border-color: #ffeb3b; box-shadow: 0 0 2vmin gold; }
+.prize-cell-emoji { font-size: 8.5vmin; line-height: 1; }
+.prize-cell-name { font-size: 2vmin; color:#fff; -webkit-text-stroke: 0.18vmin #000; paint-order: stroke fill; font-weight:900; text-align:center; line-height: 1.1; }
+.prize-cell:not(.got) .prize-cell-emoji { filter: grayscale(1) brightness(0.4); opacity: 0.5; }
+.prize-cell:not(.got) .prize-cell-name { opacity: 0.4; }
+
 /* ------- Car Builder ------- */
 .builder-wrap { display:flex; flex-direction:column; align-items:center; gap: 1.5vh; max-height: 84vh; overflow-y: auto; padding: 1vh 0; width: 100%; }
 .builder-preview { filter: drop-shadow(0 0 4vmin rgba(255,235,59,0.6)); animation: title-bounce 3s ease-in-out infinite; }
@@ -223,7 +240,18 @@ html, body { width:100%; height:100%; overflow:hidden; background:#000; font-fam
     <div id="home-car" style="margin: 2vh 0;"></div>
     <button class="btn" onclick="startGame()">▶ PLAY</button>
     <button class="btn blue" style="margin-top: 2vh; font-size: 5vmin;" onclick="showCarBuilder()">🚗 BUILD MY CAR</button>
+    <button class="btn green" style="margin-top: 1.5vh; font-size: 4.5vmin;" onclick="showPrizes()">🎁 MY PRIZES <span id="homePrizeCount" style="font-size:3.5vmin;"></span></button>
     <button class="btn green" style="margin-top: 1.5vh; font-size: 4.5vmin;" onclick="changeName()">👤 CHANGE NAME</button>
+  </div>
+
+  <!-- Trophy Room -->
+  <div class="screen" id="screen-prizes">
+    <div class="top-bar">
+      <div class="icon-btn" onclick="goHome()">🏠</div>
+      <div class="title-small">MY PRIZES!</div>
+      <div class="stars-display" id="prizeCount">🎁 0/0</div>
+    </div>
+    <div class="prize-grid" id="prizeGrid"></div>
   </div>
 
   <!-- Car builder -->
@@ -614,27 +642,57 @@ const CAR_COLORS = [
   { name: 'purple', hex: '#8e24aa' },
   { name: 'orange', hex: '#fb8c00' }
 ];
+const PRIZES = [
+  { id: 'trophy',   emoji: '🏆', name: 'Big Trophy' },
+  { id: 'gold',     emoji: '🥇', name: 'Gold Medal' },
+  { id: 'silver',   emoji: '🥈', name: 'Silver Medal' },
+  { id: 'bronze',   emoji: '🥉', name: 'Bronze Medal' },
+  { id: 'flag',     emoji: '🏁', name: 'Checkered Flag' },
+  { id: 'bolt',     emoji: '⚡', name: 'Lightning Bolt' },
+  { id: 'medal',    emoji: '🎖️', name: 'Star Medal' },
+  { id: 'racecar',  emoji: '🏎️', name: 'Race Car' },
+  { id: 'car',      emoji: '🚗', name: 'Red Car' },
+  { id: 'truck',    emoji: '🚛', name: 'Big Truck' },
+  { id: 'firetruck',emoji: '🚒', name: 'Fire Truck' },
+  { id: 'tire',     emoji: '🛞', name: 'Tire' },
+  { id: 'gas',      emoji: '⛽', name: 'Gas Pump' },
+  { id: 'lights',   emoji: '🚦', name: 'Stoplight' },
+  { id: 'cone',     emoji: '🚧', name: 'Cone' },
+  { id: 'gift',     emoji: '🎁', name: 'Gift' },
+  { id: 'star',     emoji: '🌟', name: 'Big Star' },
+  { id: 'coin',     emoji: '🪙', name: 'Gold Coin' },
+  { id: 'gem',      emoji: '💎', name: 'Diamond' },
+  { id: 'balloon',  emoji: '🎈', name: 'Balloon' },
+  { id: 'party',    emoji: '🎉', name: 'Party Popper' },
+  { id: 'rocket',   emoji: '🚀', name: 'Rocket' },
+  { id: 'crown',    emoji: '👑', name: 'Crown' },
+  { id: 'sparkle',  emoji: '✨', name: 'Sparkles' }
+];
+
 const State = {
   currentLevel: 0,
   stars: new Array(NUM_LEVELS).fill(0),
-  unlockedUpTo: 0,
+  unlockedUpTo: NUM_LEVELS - 1, // all levels open
   playerColor: '#e53935',
   playerAccent: '#ffeb3b',
   playerWheel: '#e53935',
   playerNumber: '95',
   playerName: 'AJ',
+  prizes: [],
   load() {
     try {
       const s = JSON.parse(localStorage.getItem('aj-race-state') || '{}');
       if (Array.isArray(s.stars)) {
         this.stars = new Array(NUM_LEVELS).fill(0).map((_, i) => s.stars[i] || 0);
       }
-      if (typeof s.unlockedUpTo === 'number') this.unlockedUpTo = Math.min(s.unlockedUpTo, NUM_LEVELS - 1);
+      // unlockedUpTo always set to all levels — kept in saved state for forward compat
+      this.unlockedUpTo = NUM_LEVELS - 1;
       if (typeof s.playerColor === 'string') this.playerColor = s.playerColor;
       if (typeof s.playerAccent === 'string') this.playerAccent = s.playerAccent;
       if (typeof s.playerWheel === 'string') this.playerWheel = s.playerWheel;
       if (typeof s.playerNumber === 'string') this.playerNumber = s.playerNumber;
       if (typeof s.playerName === 'string' && s.playerName.trim()) this.playerName = s.playerName.trim();
+      if (Array.isArray(s.prizes)) this.prizes = s.prizes.filter(id => PRIZES.some(p => p.id === id));
     } catch(e) {}
   },
   save() {
@@ -643,9 +701,22 @@ const State = {
         stars: this.stars, unlockedUpTo: this.unlockedUpTo,
         playerColor: this.playerColor, playerAccent: this.playerAccent,
         playerWheel: this.playerWheel, playerNumber: this.playerNumber,
-        playerName: this.playerName
+        playerName: this.playerName, prizes: this.prizes
       }));
     } catch(e) {}
+  },
+  earnPrize() {
+    // returns a prize object if a new one is awarded, or { duplicate: true, prize } if all collected
+    const collected = new Set(this.prizes);
+    const remaining = PRIZES.filter(p => !collected.has(p.id));
+    if (remaining.length === 0) {
+      const p = PRIZES[Math.floor(Math.random()*PRIZES.length)];
+      return { duplicate: true, prize: p };
+    }
+    const prize = remaining[Math.floor(Math.random()*remaining.length)];
+    this.prizes.push(prize.id);
+    this.save();
+    return { duplicate: false, prize };
   },
   getSpokenName() {
     const n = (this.playerName || 'AJ').trim();
@@ -728,6 +799,8 @@ function renderHome() {
   $('home-car').innerHTML = carSVG(State.playerCarOpts({ size: '' }));
   const greet = $('home-greeting');
   if (greet) greet.textContent = `⭐ Hi ${State.playerName}! ⭐`;
+  const pc = $('homePrizeCount');
+  if (pc) pc.textContent = `(${State.prizes.length}/${PRIZES.length})`;
   // clouds
   const clouds = $('clouds');
   clouds.innerHTML = '';
@@ -735,6 +808,40 @@ function renderHome() {
     const c = el('div', { class: 'cloud', style: `top: ${5 + i*8}%; width: ${10 + Math.random()*8}vmin; height: ${5 + Math.random()*4}vmin; animation: drift ${30 + i*8}s linear ${-i*8}s infinite;` });
     clouds.appendChild(c);
   }
+}
+
+// ========================= TROPHY ROOM =========================
+function showPrizes() {
+  Audio.init(); Audio.resume(); Audio.startMusic();
+  Audio.tap();
+  const total = State.prizes.length;
+  if (total === 0) {
+    Audio.speak(`Win games to get prizes A J!`);
+  } else {
+    Audio.speak(`You have ${total} prizes A J!`);
+  }
+  showScreen('prizes');
+  renderPrizesGrid();
+}
+
+function renderPrizesGrid() {
+  const grid = $('prizeGrid');
+  grid.innerHTML = '';
+  const collected = new Set(State.prizes);
+  PRIZES.forEach(p => {
+    const got = collected.has(p.id);
+    const cell = el('div', { class: 'prize-cell' + (got ? ' got' : '') });
+    cell.innerHTML = `
+      <div class="prize-cell-emoji">${got ? p.emoji : '❓'}</div>
+      <div class="prize-cell-name">${got ? p.name : '???'}</div>
+    `;
+    cell.addEventListener('click', () => {
+      if (got) { Audio.star(); Audio.speak(p.name); }
+      else { Audio.tap(); Audio.speak(`Win games to find this one!`); }
+    });
+    grid.appendChild(cell);
+  });
+  $('prizeCount').textContent = `🎁 ${State.prizes.length}/${PRIZES.length}`;
 }
 
 // ========================= NAME =========================
@@ -911,7 +1018,7 @@ function renderMap() {
   map.appendChild(svg);
 
   LEVELS.forEach((lv, i) => {
-    const locked = i > State.unlockedUpTo;
+    const locked = false; // all levels unlocked
     const completed = State.stars[i] > 0;
     const cp = el('div', {
       class: 'checkpoint' + (locked ? ' locked' : '') + (completed ? ' completed' : ''),
@@ -969,6 +1076,10 @@ function levelComplete(stars) {
 function showWin(stars) {
   const ov = $('winOverlay');
   ov.classList.add('active');
+  // remove any prior prize reveal
+  const oldPrize = ov.querySelector('.prize-reveal');
+  if (oldPrize) oldPrize.remove();
+
   $('winText').textContent = ['NICE!', 'GREAT!', 'AWESOME!', 'WOW AJ!', 'SUPER!'][Math.floor(Math.random()*5)];
   $('winStars').innerHTML = '';
   for (let i = 0; i < 3; i++) {
@@ -982,6 +1093,36 @@ function showWin(stars) {
   spawnConfetti();
   const cheers = ["Great job A J!", "Way to go A J!", "Wow A J! You did it!", "Super A J!", "You're so smart A J!"];
   setTimeout(() => Audio.speak(cheers[Math.floor(Math.random()*cheers.length)]), 1200);
+
+  // Award a prize
+  setTimeout(() => {
+    const result = State.earnPrize();
+    if (!result) return;
+    const reveal = el('div', { class: 'prize-reveal' });
+    if (result.duplicate) {
+      reveal.innerHTML = `
+        <div class="prize-banner">⭐ BONUS! ⭐</div>
+        <div class="prize-emoji">${result.prize.emoji}</div>
+        <div class="prize-name">${result.prize.name}</div>
+      `;
+      Audio.win();
+      Audio.speak(`Bonus! A ${result.prize.name}!`);
+    } else {
+      reveal.innerHTML = `
+        <div class="prize-banner">🎁 NEW PRIZE! 🎁</div>
+        <div class="prize-emoji">${result.prize.emoji}</div>
+        <div class="prize-name">${result.prize.name}!</div>
+      `;
+      Audio.win();
+      Audio.speak(`You got a new prize A J! A ${result.prize.name}!`);
+    }
+    // insert before the next button
+    const nextBtn = ov.querySelector('.btn');
+    ov.insertBefore(reveal, nextBtn);
+    // refresh prize counter on home
+    const pc = $('homePrizeCount');
+    if (pc) pc.textContent = `(${State.prizes.length}/${PRIZES.length})`;
+  }, 1900);
 }
 
 function closeWin() {
