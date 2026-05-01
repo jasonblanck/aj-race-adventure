@@ -1088,9 +1088,14 @@ function levelComplete(stars) {
   setTimeout(() => showWin(stars), 600);
 }
 
+let prizeRevealTimer = null;
 function showWin(stars) {
+  // Skip if user navigated away from the level screen between completion and now
+  if (!$('screen-level').classList.contains('active')) return;
   const ov = $('winOverlay');
   ov.classList.add('active');
+  // cancel any in-flight prize reveal from a prior win
+  if (prizeRevealTimer) { clearTimeout(prizeRevealTimer); prizeRevealTimer = null; }
   // remove any prior prize reveal
   const oldPrize = ov.querySelector('.prize-reveal');
   if (oldPrize) oldPrize.remove();
@@ -1110,7 +1115,9 @@ function showWin(stars) {
   setTimeout(() => Audio.speak(cheers[Math.floor(Math.random()*cheers.length)]), 1200);
 
   // Award a prize
-  setTimeout(() => {
+  prizeRevealTimer = setTimeout(() => {
+    prizeRevealTimer = null;
+    if (!ov.classList.contains('active')) return; // user dismissed early
     const result = State.earnPrize();
     if (!result) return;
     const reveal = el('div', { class: 'prize-reveal' });
@@ -1143,6 +1150,7 @@ function showWin(stars) {
 function closeWin() {
   Audio.tap();
   $('winOverlay').classList.remove('active');
+  if (prizeRevealTimer) { clearTimeout(prizeRevealTimer); prizeRevealTimer = null; }
   // auto-advance to next level if available, else map
   const next = State.currentLevel + 1;
   if (next < LEVELS.length) {
@@ -1976,6 +1984,7 @@ function levelDrive() {
     Audio.honk();
     Audio.speak("You got them all A J!");
     setTimeout(() => {
+      if (!wrap.parentNode) return; // navigated away
       wrap.remove();
       levelComplete(3);
     }, 800);
@@ -2042,6 +2051,7 @@ function levelRace() {
     $('opponent').style.bottom = oppBottom + 'vh';
   }
 
+  let finishInt = null;
   function finish(who) {
     if (stopped) return;
     stopped = true;
@@ -2050,6 +2060,7 @@ function levelRace() {
     if (who === 'player') {
       Audio.speak(`A J wins! Hooray!`);
       setTimeout(() => {
+        if (!raceWrap.parentNode) return; // user navigated away
         raceWrap.remove();
         levelComplete(3);
       }, 800);
@@ -2057,12 +2068,17 @@ function levelRace() {
       // give 2 stars even if slow finish — kid friendly, no losing
       Audio.speak(`Good race A J!`);
       // nudge player to finish on their own
-      const finishInt = setInterval(() => {
+      finishInt = setInterval(() => {
+        if (!raceWrap.parentNode) { clearInterval(finishInt); finishInt = null; return; }
         progress = Math.min(target, progress + 6);
         updatePositions();
         if (progress >= target) {
-          clearInterval(finishInt);
-          setTimeout(() => { raceWrap.remove(); levelComplete(2); }, 600);
+          clearInterval(finishInt); finishInt = null;
+          setTimeout(() => {
+            if (!raceWrap.parentNode) return;
+            raceWrap.remove();
+            levelComplete(2);
+          }, 600);
         }
       }, 100);
     }
@@ -2071,6 +2087,7 @@ function levelRace() {
   levelCleanup = () => {
     stopped = true;
     clearInterval(oppInt);
+    if (finishInt) { clearInterval(finishInt); finishInt = null; }
     if (raceWrap.parentNode) raceWrap.remove();
   };
 }
